@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>RentalPH - Item Details</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top-banner">
+  <div class="banner-logo" onclick="window.location.href='index.html'">
+    <img src="images/logo.png" alt="RentalPH Logo">
+    <span>RentalPH</span>
+  </div>
+  <h1>ITEM DETAILS</h1>
+  <div></div>
+</header>
+
+<div id="topBackButton"></div>
+
+<div class="item-details-page">
+  <div class="details-image">
+    <img id="detailsImage" src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1000">
+  </div>
+
+  <div class="details-info" id="detailsInfo"></div>
+</div>
+
+<h2 class="related-title">You may also like</h2>
+<div class="related-rentals">
+  <div class="card"><img src="https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=600"><h3>Honda Click</h3><p>🏍️ Vehicle</p><p>₱500/day</p></div>
+  <div class="card"><img src="https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=600"><h3>Motorcycle</h3><p>🏍️ Vehicle</p><p>₱600/day</p></div>
+  <div class="card"><img src="https://images.unsplash.com/photo-1511919884226-fd3cad34687c?w=600"><h3>Toyota Wigo</h3><p>🚗 Vehicle</p><p>₱1,200/day</p></div>
+</div>
+
+<div id="messageBox" class="popup-box">
+  <h3>Message Owner</h3>
+  <textarea id="ownerMessage" placeholder="Type your message..."></textarea>
+  <button onclick="sendOwnerMessage()">Send Message</button>
+  <button onclick="closePopups()">Close</button>
+</div>
+
+<div id="bookingBox" class="popup-box">
+  <h3>Rental Request</h3>
+  <label>Pickup Date</label>
+  <input id="pickupDate" type="date">
+  <label>Return Date</label>
+  <input id="returnDate" type="date">
+  <select id="deliveryType"><option>Pickup</option><option>Delivery</option></select>
+  <input id="requestContact" placeholder="Contact number">
+  <textarea id="requestNotes" placeholder="Notes to owner"></textarea>
+  <button onclick="submitRentalRequest()">Submit Request</button>
+  <button onclick="closePopups()">Close</button>
+</div>
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+  
+const socket = io();
+
+</script>
+
+<script>
+
+
+function getJSON(key, fallback) {
+  try { const value = localStorage.getItem(key); return value ? JSON.parse(value) : fallback; }
+  catch (err) { return fallback; }
+}
+function setJSON(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
+function escapeHTML(value) {
+  return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+}
+function makeId(prefix = "id") { return prefix + "-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8); }
+
+let item = getJSON("selectedItem", null);
+let currentUser = getJSON("currentUser", null);
+
+function findRealItem() {
+  const rentalItems = getJSON("rentalItems", []);
+  if (!item) return null;
+  return rentalItems.find(r => r.id && item.id && r.id === item.id) ||
+         rentalItems.find(r => r.name === item.name && r.price === item.price && r.contact === item.contact) ||
+         item;
+}
+
+function toggleOwnerProfile() {
+  const box = document.getElementById("ownerProfileBox");
+  box.style.display = box.style.display === "block" ? "none" : "block";
+}
+
+function toggleReviews() {
+  const box = document.getElementById("reviewsBox");
+  box.style.display = box.style.display === "block" ? "none" : "block";
+}
+
+function getOwnerRating(ownerEmail) {
+  const requests = getJSON("rentalRequests", []);
+
+  const reviews = requests.filter(req =>
+    (req.ownerEmail || "").toLowerCase() === (ownerEmail || "").toLowerCase() &&
+    req.rated === true &&
+    req.rating
+  );
+
+  if (!reviews.length) {
+    return {
+      average: "No rating yet",
+      count: 0,
+      stars: "☆☆☆☆☆"
+    };
+  }
+
+  const total = reviews.reduce((sum, req) => sum + Number(req.rating), 0);
+  const average = (total / reviews.length).toFixed(1);
+  const rounded = Math.round(average);
+
+  return {
+    average,
+    count: reviews.length,
+    stars: "⭐".repeat(rounded)
+  };
+}
+
+function renderItem() {
+  const realItem = findRealItem();
+  if (!realItem) {
+    document.getElementById("detailsInfo").innerHTML = "<h2>No item selected.</h2><button onclick=\"window.location.href='index.html'\">Back Home</button>";
+    return;
+  }
+  item = realItem;
+  document.getElementById("detailsImage").src = item.image || "https://via.placeholder.com/600x400?text=Rental+Item";
+
+  const ownerEmail = (item.ownerEmail || "").trim().toLowerCase();
+const userEmail = currentUser ? currentUser.email.trim().toLowerCase() : "";
+const isOwner = currentUser && userEmail === ownerEmail;
+const requests = getJSON("rentalRequests", []);
+
+const alreadyRequested = currentUser && requests.some(req =>
+  req.itemId === item.id &&
+  req.renterEmail === currentUser.email &&
+  ["Pending", "Approved"].includes(req.status)
+);
+
+const canRent = currentUser && !isOwner && item.status !== "Rented" && !alreadyRequested;
+const ownerRating = getOwnerRating(item.ownerEmail);
+
+const itemReviews = requests.filter(req =>
+  req.itemId === item.id && req.rated
+);
+
+let reviewsHTML = "";
+
+if (itemReviews.length) {
+  itemReviews.forEach(req => {
+    reviewsHTML += `
+      <div class="review-card">
+        ${"⭐".repeat(req.rating || 5)}
+        <p><b>${escapeHTML(req.renterName || "Renter")}</b></p>
+        <p>${escapeHTML(req.review || "")}</p>
+      </div>
+    `;
+  });
+} else {
+  reviewsHTML = `<p>No reviews yet.</p>`;
+}
+
+const topBack = document.getElementById("topBackButton");
+
+
+const backTo = localStorage.getItem("backTo");
+
+let backText = "← Back Home";
+let backPanel = "";
+
+if (backTo === "rents") {
+  backText = "← Back to My Rents";
+  backPanel = "rents";
+}
+
+if (backTo === "posted") {
+  backText = "← Back to My Posted Rentals";
+  backPanel = "posted";
+}
+
+topBack.innerHTML = `
+  <button class="page-back-btn" onclick="
+    localStorage.removeItem('backTo');
+    ${backPanel ? `sessionStorage.setItem('forceDashboardPanel','${backPanel}');` : ""}
+    window.location.href='index.html';
+  ">
+    ${backText}
+  </button>
+`;
+
+  document.getElementById("detailsInfo").innerHTML = `
+
+  
+
+<h1>${escapeHTML(item.name)}</h1>
+
+    <h2>${escapeHTML(item.price)}</h2>
+    <p><b>Category:</b> ${escapeHTML(item.category)}</p>
+    <p><b>Location:</b> 📍 ${escapeHTML(item.location)}</p>
+    <p><b>Status:</b> <span class="${item.status === 'Rented' ? 'rented-badge' : 'available-badge'}">${item.status === 'Rented' ? '🔴 Rented' : '🟢 Available'}</span></p>
+    <p><b>Security Deposit:</b> ${escapeHTML(item.deposit || "N/A")}</p>
+    <p><b>Pickup/Delivery:</b> ${escapeHTML(item.delivery || "N/A")}</p>
+    <p>${escapeHTML(item.desc || "")}</p>
+    <hr>
+    <hr>
+
+<button class="info-toggle-btn" onclick="toggleOwnerProfile()">
+  👤 View Owner Profile
+</button>
+
+<div id="ownerProfileBox" class="hidden-info-box">
+  <p><b>Name:</b> ${escapeHTML(item.owner || "Owner")}</p>
+  <p>✅ Verified Government ID</p>
+  <p>📱 Verified Contact Number</p>
+  <p>📞 ${escapeHTML(item.contact || "N/A")}</p>
+  <p>⭐ Rating: ${ownerRating.average} / 5</p>
+<p>📝 Reviews: ${ownerRating.count}</p>
+</div>
+
+<button class="info-toggle-btn" onclick="toggleReviews()">
+  ⭐ View Reviews & Ratings
+</button>
+
+<div id="reviewsBox" class="hidden-info-box">
+  ${reviewsHTML}
+</div>
+
+<div class="notice">
+  Safety Reminder: Before pickup or delivery, verify the valid ID, contact number, item condition, rental price, and location.
+</div>
+
+<div id="renterActions">
+  ${!currentUser ? `<button onclick="alert('Please login first.'); window.location.href='index.html'">Login First</button>` : ""}
+  ${canRent ? `<button onclick="showMessage()">Message Owner</button><button class="rent-out-btn" onclick="showBooking()">Request to Rent</button>` : ""}
+  ${alreadyRequested ? `<p><b>✅ You already rented/requested this item.</b></p>` : ""}
+  ${isOwner ? `<p><b>This is your posted item.</b></p>` : ""}
+  ${item.status === "Rented" && !isOwner ? `<p><b>This item is already rented.</b></p>` : ""}
+</div>
+
+  `;
+}
+
+function showMessage() { document.getElementById("messageBox").style.display = "block"; }
+function showBooking() { document.getElementById("bookingBox").style.display = "block"; }
+function closePopups() {
+  document.getElementById("messageBox").style.display = "none";
+  document.getElementById("bookingBox").style.display = "none";
+}
+
+function submitRentalRequest() {
+  currentUser = getJSON("currentUser", null);
+  item = findRealItem();
+  if (!currentUser) return alert("Please login first.");
+  if (!item.ownerEmail) return alert("Owner email missing. Please open a posted item.");
+
+  const ownerEmail = (item.ownerEmail || "").trim().toLowerCase();
+const userEmail = currentUser.email.trim().toLowerCase();
+
+if (userEmail === ownerEmail) {
+  alert("You cannot rent your own item.");
+  return;
+}
+
+  const pickupDate = document.getElementById("pickupDate").value;
+  const returnDate = document.getElementById("returnDate").value;
+  if (!pickupDate || !returnDate) return alert("Please choose pickup and return date.");
+
+  const requests = getJSON("rentalRequests", []);
+  requests.push({
+    id: makeId("request"),
+    itemId: item.id || "",
+    itemName: item.name,
+    itemImage: item.image || "",
+    price: item.price || "",
+    ownerEmail: item.ownerEmail,
+    ownerName: item.owner || "Owner",
+    renterName: currentUser.name,
+    renterEmail: currentUser.email,
+    pickupDate,
+    returnDate,
+    deliveryType: document.getElementById("deliveryType").value,
+    contact: document.getElementById("requestContact").value,
+    notes: document.getElementById("requestNotes").value,
+    status: "Pending"
+  });
+  setJSON("rentalRequests", requests);
+
+alert("Rental request submitted!");
+
+localStorage.setItem("openDashboardPanel", "rents");
+localStorage.setItem("lastPage", "dashboard");
+
+closePopups();
+
+window.location.href = "index.html";
+}
+
+function sendOwnerMessage() {
+  const item = JSON.parse(localStorage.getItem("selectedItem"));
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  
+
+  if (!currentUser) {
+    alert("Please login first.");
+    return;
+  }
+   const ownerEmail = (item.ownerEmail || "").trim().toLowerCase();
+    const userEmail = currentUser.email.trim().toLowerCase();
+
+    if (userEmail === ownerEmail) {
+        alert("You cannot message your own item.");
+        return;
+    }
+  
+
+  const message = document.getElementById("ownerMessage").value.trim();
+
+  if (!message) {
+    alert("Please type a message.");
+    return;
+  }
+  const ownerName = item.owner || "Owner";
+
+  if (!ownerEmail) {
+    alert("Owner email not found. This item needs ownerEmail.");
+    return;
+  }
+
+  socket.emit("sendMessage", {
+    senderEmail: currentUser.email,
+    senderName: currentUser.name,
+    receiverEmail: ownerEmail,
+    receiverName: ownerName,
+    text: message
+  });
+
+  alert("Message sent!");
+  document.getElementById("ownerMessage").value = "";
+  closePopups();
+}
+
+
+renderItem();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,34 @@
+[
+  {
+    "id": 1782613037292,
+    "name": "Keith Amahit",
+    "email": "keith@gmail.com",
+    "contact": "09453482366",
+    "password": "$2b$10$IgbYZrClkW15MKCN.LhQ4uUzk2o0iWrdPHl959.0uObm6sMO2wYwa",
+    "role": "owner"
+  },
+  {
+    "id": 1782613188783,
+    "name": "trina halili",
+    "email": "trina@gmail.com",
+    "contact": "09453482366",
+    "password": "$2b$10$n.vs7BrociMSXa70/JVMzefPQKVzMfAOPLfcUKME5K5AnWcz1G5ka",
+    "role": "renter"
+  },
+  {
+    "id": 1782634305826,
+    "name": "Alex",
+    "email": "alex@gmail.com",
+    "contact": "09453482368",
+    "password": "$2b$10$1DfvKjvArMlx5FKLngxwme7u4wBzmjyoVambW9ALvOIIBdP3gnC.m",
+    "role": "renter"
+  },
+  {
+    "id": 1782637151043,
+    "name": "Felicia ",
+    "email": "catslyn777@gmail.com",
+    "contact": "000000000990",
+    "password": "$2b$10$EkzRxB8ARpRDFahAKDfPoufCkzxmTqyCsWQCDdxrKIUMY5vMekBqy",
+    "role": "renter"
+  }
+]
