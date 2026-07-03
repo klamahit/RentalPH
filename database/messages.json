@@ -1408,7 +1408,22 @@
     "text": "dfsdfdsfdsfsdf",
     "date": "7/2/2026, 2:39:05 PM",
     "readBy": [
-      "trina@gmail.com"
+      "trina@gmail.com",
+      "keith@gmail.com"
+    ],
+    "deleted": false,
+    "edited": false
+  },
+  {
+    "id": 1783050714330,
+    "senderEmail": "keith@gmail.com",
+    "senderName": "Keith Amahit",
+    "receiverEmail": "trina@gmail.com",
+    "receiverName": "trina halili",
+    "text": "gdfggfd",
+    "date": "7/3/2026, 11:51:54 AM",
+    "readBy": [
+      "keith@gmail.com"
     ],
     "deleted": false,
     "edited": false

@@ -1,5 +1,6 @@
 require("dotenv").config();
 
+
 const express = require("express");
 const nodemailer = require("nodemailer");
 const cron = require("node-cron");
@@ -9,6 +10,13 @@ const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const path = require("path");
 const fs = require("fs");
+const connectDB = require("./config/db");
+const User = require("./models/User");
+const Message = require("./models/Message");
+const Item = require("./models/Item");
+
+
+connectDB();
 
 const usersFile = path.join(__dirname, "database", "users.json");
 const messagesFile = path.join(__dirname, "database", "messages.json");
@@ -70,97 +78,139 @@ const transporter = nodemailer.createTransport({
 
 
 app.post("/api/signup", async (req, res) => {
-  const { name, email, contact, password, role } = req.body;
+  try {
+    const { name, email, contact, password, role } = req.body;
 
-  if (!name || !email || !contact || !password || !role) {
-    return res.status(400).json({ message: "All fields are required." });
-  }
-
-  const users = readUsers();
-
-  const exists = users.find(u => u.email === email);
-  if (exists) {
-    return res.status(400).json({ message: "Email already registered." });
-  }
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  const user = {
-    id: Date.now(),
-    name,
-    email,
-    contact,
-    password: hashedPassword,
-    role
-  };
-
-  users.push(user);
-  saveUsers(users);
-
-  res.json({
-    message: "Account created successfully.",
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      contact: user.contact,
-      role: user.role
+    if (!name || !email || !contact || !password || !role) {
+      return res.status(400).json({ message: "All fields are required." });
     }
-  });
+
+    const exists = await User.findOne({ email });
+    if (exists) {
+      return res.status(400).json({ message: "Email already registered." });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await User.create({
+      name,
+      email,
+      contact,
+      password: hashedPassword,
+      role
+    });
+
+    res.json({
+      message: "Account created successfully.",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        contact: user.contact,
+        role: user.role
+      }
+    });
+
+  } catch (err) {
+    console.error("Signup error:", err.message);
+    res.status(500).json({ message: "Server error during signup." });
+  }
 });
+
 
 app.post("/api/login", async (req, res) => {
-  const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-  const users = readUsers();
+    const user = await User.findOne({ email });
 
-const user = users.find(u => u.email === email);
-
-  if (!user) {
-    return res.status(400).json({ message: "Invalid email or password." });
-  }
-
-  const match = await bcrypt.compare(password, user.password);
-
-  if (!match) {
-    return res.status(400).json({ message: "Invalid email or password." });
-  }
-
-  res.json({
-    message: "Login successful.",
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      contact: user.contact,
-      role: user.role
+    if (!user) {
+      return res.status(400).json({ message: "Invalid email or password." });
     }
-  });
+
+    const match = await bcrypt.compare(password, user.password);
+
+    if (!match) {
+      return res.status(400).json({ message: "Invalid email or password." });
+    }
+
+    res.json({
+      message: "Login successful.",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        contact: user.contact,
+        role: user.role
+      }
+    });
+
+  } catch (err) {
+    console.error("Login error:", err.message);
+    res.status(500).json({ message: "Server error during login." });
+  }
 });
 
-app.get("/api/items", (req, res) => {
-  res.json(readItems());
+app.get("/api/items", async (req, res) => {
+  try {
+    const items = await Item.find().sort({ createdAt: -1 });
+    res.json(items);
+  } catch (err) {
+    console.error("Get items error:", err.message);
+    res.status(500).json({ message: "Server error getting items." });
+  }
 });
 
-app.post("/api/items", (req, res) => {
-  const item = req.body;
-  const items = readItems();
+app.post("/api/items", async (req, res) => {
+  try {
+    const item = await Item.create({
+      ...req.body,
+      status: "Available"
+    });
 
-  const newItem = {
-    ...item,
-    id: Date.now().toString(),
-    status: "Available",
-    createdAt: new Date().toISOString()
-  };
-
-  items.push(newItem);
-  saveItems(items);
-
-  res.json({
-    message: "Item saved successfully.",
-    item: newItem
-  });
+    res.json({
+      message: "Item saved successfully.",
+      item
+    });
+  } catch (err) {
+    console.error("Add item error:", err.message);
+    res.status(500).json({
+      message: "Error saving item."
+    });
+  }
 });
+
+app.put("/api/items/:id", async (req, res) => {
+  try {
+    const item = await Item.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
+
+    res.json({
+      message: "Item updated successfully.",
+      item
+    });
+  } catch (err) {
+    console.error("Update item error:", err.message);
+    res.status(500).json({ message: "Error updating item." });
+  }
+});
+
+app.delete("/api/items/:id", async (req, res) => {
+  try {
+    await Item.findByIdAndDelete(req.params.id);
+
+    res.json({
+      message: "Item deleted successfully."
+    });
+  } catch (err) {
+    console.error("Delete item error:", err.message);
+    res.status(500).json({ message: "Error deleting item." });
+  }
+});
+
 
 app.post("/api/save-approved-rental", (req, res) => {
   const rental = req.body;
@@ -195,57 +245,49 @@ socket.on("userOnline", (user) => {
   io.emit("onlineUsers", onlineUsers);
 });
 
-  socket.emit("loadMessages", readMessages());
+  Message.find().sort({ createdAt: 1 }).then(messages => {
+  socket.emit("loadMessages", messages);
+});
 
-  socket.on("sendMessage", (msg) => {
-    const messages = readMessages();
-
-    const newMsg = {
-
-    
-  id: Date.now(),
-
-  senderEmail: msg.senderEmail,
-  senderName: msg.senderName,
-
-  receiverEmail: msg.receiverEmail,
-  receiverName: msg.receiverName,
-
-  text: msg.text,
-
-  date: new Date().toLocaleString(),
-
-  readBy: [msg.senderEmail],
-
-  deleted: false,
-
-  edited: false
-};
-
-    messages.push(newMsg);
-    saveMessages(messages);
+  socket.on("sendMessage", async (msg) => {
+  try {
+    const newMsg = await Message.create({
+      senderEmail: msg.senderEmail,
+      senderName: msg.senderName,
+      receiverEmail: msg.receiverEmail,
+      receiverName: msg.receiverName,
+      text: msg.text,
+      readBy: [msg.senderEmail],
+      deleted: false,
+      edited: false
+    });
 
     io.emit("newMessage", newMsg);
-  });
+  } catch (err) {
+    console.error("Send message error:", err);
+  }
+});
 
-  socket.on("markAsRead", (data) => {
-  const messages = readMessages();
-
-  messages.forEach(msg => {
-    const isConversation =
-      (msg.senderEmail === data.currentEmail && msg.receiverEmail === data.otherEmail) ||
-      (msg.senderEmail === data.otherEmail && msg.receiverEmail === data.currentEmail);
-
-    if (isConversation) {
-      if (!msg.readBy) msg.readBy = [];
-      if (!msg.readBy.includes(data.currentEmail)) {
-        msg.readBy.push(data.currentEmail);
+  socket.on("markAsRead", async (data) => {
+  try {
+    await Message.updateMany(
+      {
+        $or: [
+          { senderEmail: data.currentEmail, receiverEmail: data.otherEmail },
+          { senderEmail: data.otherEmail, receiverEmail: data.currentEmail }
+        ],
+        readBy: { $ne: data.currentEmail }
+      },
+      {
+        $push: { readBy: data.currentEmail }
       }
-    }
-  });
+    );
 
-  saveMessages(messages);
-  io.emit("loadMessages", messages);
+    const messages = await Message.find().sort({ createdAt: 1 });
+    io.emit("loadMessages", messages);
+  } catch (err) {
+    console.error("Mark as read error:", err);
+  }
 });
 
 socket.on("typing", (data) => {

@@ -74,7 +74,7 @@ const DEFAULT_ITEMS = [
   }
 ];
 
-let items = getItems();
+let items = [];
 let activeMessageIndex = null;
 
 function getJSON(key, fallback) {
@@ -94,17 +94,26 @@ function getCurrentUser() {
   return getJSON("currentUser", null);
 }
 
+
+async function loadItemsFromDB() {
+  try {
+    const res = await fetch("/api/items");
+    items = await res.json();
+    displayItems(items);
+    displayItemsHome();
+  } catch (err) {
+    console.error("Load items error:", err);
+  }
+}
+
 function getItems() {
-  const saved = getJSON("rentalItems", null);
-  if (Array.isArray(saved) && saved.length) return saved;
-  setJSON("rentalItems", DEFAULT_ITEMS);
-  return [...DEFAULT_ITEMS];
+  return items;
 }
 
 function refreshItems() {
-  items = getItems();
   return items;
 }
+
 
 function makeId(prefix = "id") {
   return prefix + "-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
@@ -324,16 +333,24 @@ async function addItem(event) {
     image: imageData
   };
 
-  const rentalItems = refreshItems();
-  rentalItems.push(newItem);
-  setJSON("rentalItems", rentalItems);
-  items = rentalItems;
-
-  alert("Rental item posted successfully!");
+  fetch("/api/items", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify(newItem)
+})
+.then(res => res.json())
+.then(data => {
+  alert(data.message || "Rental item posted successfully!");
   event.target.reset();
-  displayItems(items);
-  displayItemsHome();
-  showPage("browse");
+  location.reload();
+})
+.catch(err => {
+  console.error(err);
+  alert("Error saving item.");
+});
+
 }
 
 function openItem(item, source = "") {
@@ -634,8 +651,8 @@ myItems.forEach(item => {
 
         <div class="dashboard-actions">
             <button onclick='openItem(${safeItem}, "posted")'>👁</button>
-            <button onclick="editRental(${originalIndex})">✏️</button>
-            <button onclick="deleteRental(${originalIndex})">🗑</button>
+            <button onclick="editRental('${item._id}')">✏️</button>
+            <button onclick="deleteRental('${item._id}')">🗑</button>
         </div>
 
     </div>
@@ -775,20 +792,28 @@ function updateRequestStatus(realIndex, status) {
   displayItems(refreshItems());
 }
 
-function deleteRental(index) {
-  const rentalItems = refreshItems();
-  if (!rentalItems[index]) return;
+async function deleteRental(id) {
   if (!confirm("Delete this rental item?")) return;
-  rentalItems.splice(index, 1);
-  setJSON("rentalItems", rentalItems);
-  items = rentalItems;
-  alert("Rental item deleted!");
-  showDashboardPanel("posted");
+
+  try {
+    const res = await fetch(`/api/items/${id}`, {
+      method: "DELETE"
+    });
+
+    const data = await res.json();
+    alert(data.message);
+
+    await loadItemsFromDB();
+    showDashboardPanel("posted");
+  } catch (err) {
+    console.error(err);
+    alert("Delete failed.");
+  }
 }
 
-function editRental(index) {
+function editRental(id) {
   const rentalItems = refreshItems();
-  const item = rentalItems[index];
+  const item = rentalItems.find(i => i._id === id);
   const panel = document.getElementById("dashboardContent");
   if (!item || !panel) return;
 
@@ -809,27 +834,42 @@ function editRental(index) {
       </select>
       <input id="editItemContact" value="${escapeHTML(item.contact)}" placeholder="Contact Number">
       <textarea id="editItemDesc" placeholder="Description">${escapeHTML(item.desc)}</textarea>
-      <button onclick="saveRentalEdit(${index})">Save Changes</button>
+      <button onclick="saveRentalEdit('${id}')">Save Changes</button>
       <button onclick="showDashboardPanel('posted')">Cancel</button>
     </div>
   `;
 }
 
-function saveRentalEdit(index) {
-  const rentalItems = refreshItems();
-  if (!rentalItems[index]) return;
-  rentalItems[index].name = document.getElementById("editItemName").value.trim();
-  rentalItems[index].category = document.getElementById("editItemCategory").value;
-  rentalItems[index].price = document.getElementById("editItemPrice").value.trim();
-  rentalItems[index].deposit = document.getElementById("editItemDeposit").value.trim();
-  rentalItems[index].delivery = document.getElementById("editItemDelivery").value;
-  rentalItems[index].location = document.getElementById("editItemLocation").value;
-  rentalItems[index].contact = document.getElementById("editItemContact").value.trim();
-  rentalItems[index].desc = document.getElementById("editItemDesc").value.trim();
-  setJSON("rentalItems", rentalItems);
-  items = rentalItems;
-  showDashboardPanel("posted");
+async function saveRentalEdit(id) {
+  try {
+    const res = await fetch(`/api/items/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        name: document.getElementById("editItemName").value.trim(),
+        category: document.getElementById("editItemCategory").value,
+        price: document.getElementById("editItemPrice").value.trim(),
+        deposit: document.getElementById("editItemDeposit").value.trim(),
+        delivery: document.getElementById("editItemDelivery").value,
+        location: document.getElementById("editItemLocation").value,
+        contact: document.getElementById("editItemContact").value.trim(),
+        desc: document.getElementById("editItemDesc").value.trim()
+      })
+    });
+
+    const data = await res.json();
+    alert(data.message);
+
+    await loadItemsFromDB();
+    showDashboardPanel("posted");
+  } catch (err) {
+    console.error(err);
+    alert("Update failed.");
+  }
 }
+
 function returnRental(index) {
 
   const rentalItems = refreshItems();
@@ -1392,3 +1432,4 @@ function getOwnerRating(ownerEmail) {
     stars: "⭐".repeat(Math.round(average))
   };
 }
+loadItemsFromDB();

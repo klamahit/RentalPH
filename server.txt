@@ -1,0 +1,341 @@
+require("dotenv").config();
+
+
+const express = require("express");
+const nodemailer = require("nodemailer");
+const cron = require("node-cron");
+const http = require("http");
+const { Server } = require("socket.io");
+const cors = require("cors");
+const bcrypt = require("bcryptjs");
+const path = require("path");
+const fs = require("fs");
+const connectDB = require("./config/db");
+const User = require("./models/User");
+const Item = require("./models/Item");
+
+
+connectDB();
+
+const usersFile = path.join(__dirname, "database", "users.json");
+const messagesFile = path.join(__dirname, "database", "messages.json");
+const rentalsFile = path.join(__dirname, "database", "rentals.json");
+const itemsFile = path.join(__dirname, "database", "items.json");
+
+function readMessages() {
+  if (!fs.existsSync(messagesFile)) return [];
+  return JSON.parse(fs.readFileSync(messagesFile, "utf8"));
+}
+
+function saveMessages(messages) {
+  fs.writeFileSync(messagesFile, JSON.stringify(messages, null, 2));
+}
+
+function readUsers() {
+  if (!fs.existsSync(usersFile)) return [];
+  return JSON.parse(fs.readFileSync(usersFile, "utf8"));
+}
+
+function saveUsers(users) {
+  fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
+}
+
+function readRentals() {
+  if (!fs.existsSync(rentalsFile)) return [];
+  return JSON.parse(fs.readFileSync(rentalsFile, "utf8"));
+}
+
+function saveRentals(rentals) {
+  fs.writeFileSync(rentalsFile, JSON.stringify(rentals, null, 2));
+}
+
+function readItems() {
+  if (!fs.existsSync(itemsFile)) return [];
+  return JSON.parse(fs.readFileSync(itemsFile, "utf8"));
+}
+
+function saveItems(items) {
+  fs.writeFileSync(itemsFile, JSON.stringify(items, null, 2));
+}
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
+let onlineUsers = {};
+
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, "public")));
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
+
+
+app.post("/api/signup", async (req, res) => {
+  try {
+    const { name, email, contact, password, role } = req.body;
+
+    if (!name || !email || !contact || !password || !role) {
+      return res.status(400).json({ message: "All fields are required." });
+    }
+
+    const exists = await User.findOne({ email });
+    if (exists) {
+      return res.status(400).json({ message: "Email already registered." });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await User.create({
+      name,
+      email,
+      contact,
+      password: hashedPassword,
+      role
+    });
+
+    res.json({
+      message: "Account created successfully.",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        contact: user.contact,
+        role: user.role
+      }
+    });
+
+  } catch (err) {
+    console.error("Signup error:", err.message);
+    res.status(500).json({ message: "Server error during signup." });
+  }
+});
+
+
+app.post("/api/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid email or password." });
+    }
+
+    const match = await bcrypt.compare(password, user.password);
+
+    if (!match) {
+      return res.status(400).json({ message: "Invalid email or password." });
+    }
+
+    res.json({
+      message: "Login successful.",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        contact: user.contact,
+        role: user.role
+      }
+    });
+
+  } catch (err) {
+    console.error("Login error:", err.message);
+    res.status(500).json({ message: "Server error during login." });
+  }
+});
+
+app.get("/api/items", async (req, res) => {
+  try {
+    const items = await Item.find().sort({ createdAt: -1 });
+    res.json(items);
+  } catch (err) {
+    console.error("Get items error:", err.message);
+    res.status(500).json({ message: "Server error getting items." });
+  }
+});
+
+app.post("/api/items", async (req, res) => {
+  try {
+    const item = await Item.create({
+      ...req.body,
+      status: "Available"
+    });
+
+    res.json({
+      message: "Item saved successfully.",
+      item
+    });
+  } catch (err) {
+    console.error("Add item error:", err.message);
+    res.status(500).json({
+      message: "Error saving item."
+    });
+  }
+});
+
+app.post("/api/save-approved-rental", (req, res) => {
+  const rental = req.body;
+  const rentals = readRentals();
+
+  const exists = rentals.find(r => r.id === rental.id);
+
+  if (!exists) {
+    rentals.push({
+      ...rental,
+      reminderSent: false
+    });
+  }
+
+  saveRentals(rentals);
+
+  res.json({
+    message: "Approved rental saved for reminder."
+  });
+});
+
+io.on("connection", (socket) => {
+
+  console.log("User connected:", socket.id);
+
+socket.on("userOnline", (user) => {
+  onlineUsers[user.email] = {
+    name: user.name,
+    socketId: socket.id
+  };
+
+  io.emit("onlineUsers", onlineUsers);
+});
+
+  socket.emit("loadMessages", readMessages());
+
+  socket.on("sendMessage", (msg) => {
+    const messages = readMessages();
+
+    const newMsg = {
+
+    
+  id: Date.now(),
+
+  senderEmail: msg.senderEmail,
+  senderName: msg.senderName,
+
+  receiverEmail: msg.receiverEmail,
+  receiverName: msg.receiverName,
+
+  text: msg.text,
+
+  date: new Date().toLocaleString(),
+
+  readBy: [msg.senderEmail],
+
+  deleted: false,
+
+  edited: false
+};
+
+    messages.push(newMsg);
+    saveMessages(messages);
+
+    io.emit("newMessage", newMsg);
+  });
+
+  socket.on("markAsRead", (data) => {
+  const messages = readMessages();
+
+  messages.forEach(msg => {
+    const isConversation =
+      (msg.senderEmail === data.currentEmail && msg.receiverEmail === data.otherEmail) ||
+      (msg.senderEmail === data.otherEmail && msg.receiverEmail === data.currentEmail);
+
+    if (isConversation) {
+      if (!msg.readBy) msg.readBy = [];
+      if (!msg.readBy.includes(data.currentEmail)) {
+        msg.readBy.push(data.currentEmail);
+      }
+    }
+  });
+
+  saveMessages(messages);
+  io.emit("loadMessages", messages);
+});
+
+socket.on("typing", (data) => {
+  io.emit("typing", data);
+});
+
+socket.on("stopTyping", (data) => {
+  io.emit("stopTyping", data);
+});
+
+socket.on("disconnect", () => {
+  for (let email in onlineUsers) {
+    if (onlineUsers[email].socketId === socket.id) {
+      delete onlineUsers[email];
+    }
+  }
+
+  io.emit("onlineUsers", onlineUsers);
+  console.log("User disconnected:", socket.id);
+});
+
+});
+
+cron.schedule("0 8 * * *", async () => {
+  const rentals = readRentals();
+  const today = new Date();
+
+  for (let rental of rentals) {
+    if (rental.status !== "Approved") continue;
+    if (rental.reminderSent) continue;
+
+    const returnDate = new Date(rental.returnDate);
+    const diffTime = returnDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 3) {
+      const subject = `RentalPH Due Reminder: ${rental.itemName}`;
+
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: rental.renterEmail,
+        subject,
+        text: `Hello ${rental.renterName},
+
+This is a reminder that your rented item "${rental.itemName}" is due on ${rental.returnDate}.
+
+Please return the item on time.
+
+Thank you,
+RentalPH`
+      });
+
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: rental.ownerEmail,
+        subject,
+        text: `Hello ${rental.ownerName},
+
+This is a reminder that your item "${rental.itemName}" rented by ${rental.renterName} is due on ${rental.returnDate}.
+
+Please coordinate with the renter.
+
+Thank you,
+RentalPH`
+      });
+
+      rental.reminderSent = true;
+    }
+  }
+
+  saveRentals(rentals);
+});
+
+server.listen(3000, () => {
+  console.log("RentalPH running at http://localhost:3000");
+});
