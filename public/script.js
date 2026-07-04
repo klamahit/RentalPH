@@ -190,14 +190,17 @@ function displayItemsHome() {
   const featured = document.getElementById("featuredRentals");
   if (!featured) return;
 
-  const uploadedItems = refreshItems().filter(item =>
-    item.ownerEmail && item.ownerEmail !== "owner@rentalph.local"
-  );
-
   featured.innerHTML = "";
 
-  if (!uploadedItems.length) {
-    featured.innerHTML = "<p>No featured rentals yet. Post your first rental item.</p>";
+  const uploadedItems = items.filter(item =>
+    item.ownerEmail &&
+    item.ownerEmail !== "owner@rentalph.local" &&
+    item.status === "Available"
+  );
+
+  if (uploadedItems.length === 0) {
+    featured.innerHTML =
+      "<p>No featured rentals yet. Post your first rental item.</p>";
     return;
   }
 
@@ -205,22 +208,23 @@ function displayItemsHome() {
     const safeItem = JSON.stringify(item).replaceAll("'", "&#039;");
 
     featured.innerHTML += `
-    <div class="card">
-
+      <div class="card">
         <div class="image-box">
-            <img
-                class="item-image"
-                src="${item.image || 'https://via.placeholder.com/400x250?text=Rental+Item'}"
-                alt="${item.name}">
+          <img
+            class="item-image"
+            src="${item.image || 'https://via.placeholder.com/400x250?text=Rental+Item'}"
+            alt="${escapeHTML(item.name)}">
         </div>
 
         <h3>${escapeHTML(item.name)}</h3>
         <p>${escapeHTML(item.category)}</p>
         <p>${escapeHTML(item.price)}</p>
-        <button onclick='openItem(${safeItem})'>View Item</button>
 
-    </div>
-`;
+        <button onclick='openItem(${safeItem})'>
+          View Item
+        </button>
+      </div>
+    `;
   });
 }
 
