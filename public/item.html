@@ -250,28 +250,30 @@ function closePopups() {
   document.getElementById("bookingBox").style.display = "none";
 }
 
-function submitRentalRequest() {
+async function submitRentalRequest() {
   currentUser = getJSON("currentUser", null);
   item = findRealItem();
+
   if (!currentUser) return alert("Please login first.");
-  if (!item.ownerEmail) return alert("Owner email missing. Please open a posted item.");
+  if (!item.ownerEmail) return alert("Owner email missing.");
 
   const ownerEmail = (item.ownerEmail || "").trim().toLowerCase();
-const userEmail = currentUser.email.trim().toLowerCase();
+  const userEmail = currentUser.email.trim().toLowerCase();
 
-if (userEmail === ownerEmail) {
-  alert("You cannot rent your own item.");
-  return;
-}
+  if (userEmail === ownerEmail) {
+    alert("You cannot rent your own item.");
+    return;
+  }
 
   const pickupDate = document.getElementById("pickupDate").value;
   const returnDate = document.getElementById("returnDate").value;
-  if (!pickupDate || !returnDate) return alert("Please choose pickup and return date.");
 
-  const requests = getJSON("rentalRequests", []);
-  requests.push({
-    id: makeId("request"),
-    itemId: item.id || "",
+  if (!pickupDate || !returnDate) {
+    return alert("Please choose pickup and return date.");
+  }
+
+  const requestData = {
+    itemId: item._id || item.id || "",
     itemName: item.name,
     itemImage: item.image || "",
     price: item.price || "",
@@ -285,17 +287,31 @@ if (userEmail === ownerEmail) {
     contact: document.getElementById("requestContact").value,
     notes: document.getElementById("requestNotes").value,
     status: "Pending"
-  });
-  setJSON("rentalRequests", requests);
+  };
 
-alert("Rental request submitted!");
+  try {
+    const res = await fetch("/api/rental-requests", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(requestData)
+    });
 
-localStorage.setItem("openDashboardPanel", "rents");
-localStorage.setItem("lastPage", "dashboard");
+    const data = await res.json();
 
-closePopups();
+    alert(data.message || "Rental request submitted!");
 
-window.location.href = "index.html";
+    localStorage.setItem("openDashboardPanel", "rents");
+    localStorage.setItem("lastPage", "dashboard");
+
+    closePopups();
+    window.location.href = "index.html";
+
+  } catch (err) {
+    console.error(err);
+    alert("Error submitting rental request.");
+  }
 }
 
 function sendOwnerMessage() {

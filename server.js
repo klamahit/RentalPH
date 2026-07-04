@@ -14,6 +14,7 @@ const connectDB = require("./config/db");
 const User = require("./models/User");
 const Message = require("./models/Message");
 const Item = require("./models/Item");
+const RentalRequest = require("./models/RentalRequest");
 
 
 connectDB();
@@ -230,6 +231,41 @@ app.post("/api/save-approved-rental", (req, res) => {
   res.json({
     message: "Approved rental saved for reminder."
   });
+});
+
+app.get("/api/rental-requests", async (req, res) => {
+  try {
+    const requests = await RentalRequest.find().sort({ createdAt: -1 });
+    res.json(requests);
+  } catch (err) {
+    console.error("Get rental requests error:", err.message);
+    res.status(500).json({ message: "Error getting rental requests." });
+  }
+});
+
+app.post("/api/rental-requests", async (req, res) => {
+  try {
+    const request = await RentalRequest.create(req.body);
+    res.json({ message: "Rental request sent.", request });
+  } catch (err) {
+    console.error("Create rental request error:", err.message);
+    res.status(500).json({ message: "Error sending rental request." });
+  }
+});
+
+app.put("/api/rental-requests/:id", async (req, res) => {
+  try {
+    const request = await RentalRequest.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
+
+    res.json({ message: "Rental request updated.", request });
+  } catch (err) {
+    console.error("Update rental request error:", err.message);
+    res.status(500).json({ message: "Error updating rental request." });
+  }
 });
 
 io.on("connection", (socket) => {

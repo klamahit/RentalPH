@@ -75,6 +75,7 @@ const DEFAULT_ITEMS = [
 ];
 
 let items = [];
+let rentalRequests = [];
 let activeMessageIndex = null;
 
 function getJSON(key, fallback) {
@@ -105,6 +106,21 @@ async function loadItemsFromDB() {
     console.error("Load items error:", err);
   }
 }
+
+async function loadRentalRequestsFromDB() {
+  try {
+    const res = await fetch("/api/rental-requests");
+    rentalRequests = await res.json();
+
+    if (!Array.isArray(rentalRequests)) {
+      rentalRequests = [];
+    }
+  } catch (err) {
+    console.error("Load rental requests error:", err);
+    rentalRequests = [];
+  }
+}
+
 
 function getItems() {
   return items;
@@ -1244,11 +1260,12 @@ function saveNewPassword() {
   alert("Password updated successfully!");
 }
 
-window.onload = function() {
+  window.onload = async function() {
   updateAuthUI();
   updateDashboardNav();
 
-  loadItemsFromDB();
+  await loadItemsFromDB();
+  await loadRentalRequestsFromDB();
 
   const currentUser = getCurrentUser();
 
@@ -1436,23 +1453,4 @@ function getOwnerRating(ownerEmail) {
     count: reviews.length,
     stars: "⭐".repeat(Math.round(average))
   };
-}
-async function loadItemsFromDB() {
-  try {
-    const res = await fetch("/api/items");
-    const data = await res.json();
-
-    if (!Array.isArray(data)) {
-      console.error("Items API did not return array:", data);
-      items = [];
-      return;
-    }
-
-    items = data;
-    displayItems(items);
-    displayItemsHome();
-  } catch (err) {
-    console.error("Load items error:", err);
-    items = [];
-  }
 }
