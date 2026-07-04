@@ -1432,4 +1432,22 @@ function getOwnerRating(ownerEmail) {
     stars: "⭐".repeat(Math.round(average))
   };
 }
-loadItemsFromDB();
+async function loadItemsFromDB() {
+  try {
+    const res = await fetch("/api/items");
+    const data = await res.json();
+
+    if (!Array.isArray(data)) {
+      console.error("Items API did not return array:", data);
+      items = [];
+      return;
+    }
+
+    items = data;
+    displayItems(items);
+    displayItemsHome();
+  } catch (err) {
+    console.error("Load items error:", err);
+    items = [];
+  }
+}
