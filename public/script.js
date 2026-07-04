@@ -1243,9 +1243,8 @@ function saveNewPassword() {
 window.onload = function() {
   updateAuthUI();
   updateDashboardNav();
-  refreshItems();
-  displayItems(items);
-  displayItemsHome();
+
+  loadItemsFromDB();
 
   const currentUser = getCurrentUser();
 
@@ -1260,7 +1259,7 @@ window.onload = function() {
     return;
   }
 
-    const openPanel = localStorage.getItem("openDashboardPanel");
+  const openPanel = localStorage.getItem("openDashboardPanel");
   if (openPanel && currentUser) {
     showPage("dashboard");
     showDashboardPanel(openPanel);
@@ -1271,6 +1270,8 @@ window.onload = function() {
   const lastPage = localStorage.getItem("lastPage");
   if (currentUser && lastPage) showPage(lastPage);
 };
+
+
 function openFooterModal(type) {
   const modal = document.getElementById("footerModal");
   const content = document.getElementById("footerModalContent");
