@@ -322,14 +322,10 @@ async function submitRentalRequest() {
     closePopups();
     window.location.href = "index.html";
 
-  } catch (err) {
+      } catch (err) {
     console.error("Rental request error:", err);
-
-    if (err.response) {
-        console.log(err.response);
-    }
-
     alert("Rental request failed. Open Console.");
+  }
 }
 
 function sendOwnerMessage() {

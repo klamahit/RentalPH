@@ -682,16 +682,19 @@ myItems.forEach(item => {
 
 });
 }
-function displayMyRents() {
+
+async function displayMyRents() {
   const box = document.getElementById("myRents");
   const currentUser = getCurrentUser();
 
-  if (!box) return;
+  if (!box || !currentUser) return;
 
-  const requests = getJSON("rentalRequests", []);
+  await loadRentalRequestsFromDB();
 
-  const myRents = requests.filter(req =>
-    req.renterEmail === currentUser.email &&
+  const userEmail = currentUser.email.trim().toLowerCase();
+
+  const myRents = rentalRequests.filter(req =>
+    (req.renterEmail || "").trim().toLowerCase() === userEmail &&
     (req.status === "Approved" || req.status === "Returned")
   );
 
@@ -703,50 +706,30 @@ function displayMyRents() {
   box.innerHTML = "";
 
   myRents.forEach(req => {
-
     let extraButton = "";
 
-if (req.status === "Returned" && req.canRate && !req.rated) {
-  extraButton = `
-    <br><br>
-    <button onclick="openRatingPopup('${req.id}')">⭐ Rate Item</button>
-  `;
-}
+    if (req.status === "Returned" && req.canRate && !req.rated) {
+      extraButton = `<br><br><button onclick="openRatingPopup('${req._id}')">⭐ Rate Item</button>`;
+    }
 
-if (req.status === "Returned" && req.rated) {
-  extraButton = `
-    <br><br>
-    <p><b>✅ Rated:</b> ${"⭐".repeat(req.rating || 5)}</p>
-    <p>${escapeHTML(req.review || "")}</p>
-  `;
-}
+    if (req.status === "Returned" && req.rated) {
+      extraButton = `
+        <br><br>
+        <p><b>✅ Rated:</b> ${"⭐".repeat(req.rating || 5)}</p>
+        <p>${escapeHTML(req.review || "")}</p>
+      `;
+    }
 
     box.innerHTML += `
       <div class="request-card">
         <b>${escapeHTML(req.itemName)}</b>
-
-        <p>
-          ${escapeHTML(req.pickupDate)}
-          →
-          ${escapeHTML(req.returnDate)}
-        </p>
-
-        <p>
-          <b>Status:</b>
-          ${
-            req.status === "Approved"
-            ? "✅ Currently Rented"
-            : "📦 Returned"
-          }
-        </p>
-
-        <button onclick="viewRentedItem('${req.id}')">👁 View Item</button>
-
+        <p>${escapeHTML(req.pickupDate)} → ${escapeHTML(req.returnDate)}</p>
+        <p><b>Status:</b> ${req.status === "Approved" ? "✅ Currently Rented" : "📦 Returned"}</p>
+        <button onclick="viewRentedItem('${req._id}')">👁 View Item</button>
         ${extraButton}
       </div>
     `;
   });
-
 }
 
 function displayRentalRequests() {
