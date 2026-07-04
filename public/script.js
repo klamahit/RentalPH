@@ -134,13 +134,13 @@ function getRoleLabel(role) {
 
 function filterItems() {
   const category = document.getElementById("filterCategory")?.value || "All";
-  const list = refreshItems();
+  const list = items;
   displayItems(category === "All" ? list : list.filter(item => item.category === category));
 }
 
 function filterByLocation(location) {
   showPage("browse");
-  const list = refreshItems();
+  const list = items;
   if (location === "All") return displayItems(list);
   displayItems(list.filter(item => (item.location || "").toLowerCase().includes(location.toLowerCase())));
 }
@@ -370,14 +370,14 @@ function openItem(item, source = "") {
 }
 
 function openFeaturedItem(name) {
-  const item = DEFAULT_ITEMS.find(i => i.name === name) || refreshItems().find(i => i.name === name);
+  const item = items.find(i => i.name === name);
   if (item) openItem(item);
 }
 
 function searchItems() {
   const keyword = (document.getElementById("searchInput")?.value || "").toLowerCase().trim();
   showPage("browse");
-  const allItems = refreshItems();
+  const allItems = items;
   if (!keyword) return displayItems(allItems);
   displayItems(allItems.filter(item =>
     (item.name || "").toLowerCase().includes(keyword) ||
@@ -523,7 +523,7 @@ function showDashboardPanel(type) {
   updateDashboardNav();
 
   if (type === "posted") {
-  const rentalItems = refreshItems();
+  const rentalItems = items;
   const myItems = rentalItems.filter(item => item.ownerEmail === currentUser.email);
   const activeItems = myItems.filter(item => item.status === "Rented").length;
   const availableItems = myItems.filter(item => item.status === "Available").length;
@@ -608,7 +608,7 @@ function displayMyPostedRentals() {
   const currentUser = getCurrentUser();
   if (!box) return;
 
-  const rentalItems = refreshItems();
+  const rentalItems = items;
   const myItems = rentalItems.filter(item => item.ownerEmail === currentUser.email);
 
   if (!myItems.length) {
@@ -776,7 +776,7 @@ function updateRequestStatus(realIndex, status) {
   requests[realIndex].status = status;
 
   if (status === "Approved") {
-    const rentalItems = refreshItems();
+    const rentalItems = items;
     const itemIndex = rentalItems.findIndex(item => item.id === requests[realIndex].itemId || (item.name === requests[realIndex].itemName && item.ownerEmail === currentUser.email));
     if (itemIndex !== -1) {
       rentalItems[itemIndex].status = "Rented";
@@ -793,7 +793,7 @@ function updateRequestStatus(realIndex, status) {
 });
   displayRentalRequests();
   displayMyPostedRentals();
-  displayItems(refreshItems());
+  displayItems(items);
 }
 
 async function deleteRental(id) {
@@ -816,7 +816,7 @@ async function deleteRental(id) {
 }
 
 function editRental(id) {
-  const rentalItems = refreshItems();
+  const rentalItems = items;
   const item = rentalItems.find(i => i._id === id);
   const panel = document.getElementById("dashboardContent");
   if (!item || !panel) return;
@@ -876,7 +876,7 @@ async function saveRentalEdit(id) {
 
 function returnRental(index) {
 
-  const rentalItems = refreshItems();
+  const rentalItems = items;
   if (!rentalItems[index]) return;
 
   // Available na usab ang item
@@ -1366,7 +1366,7 @@ function closeRatingPopup() {
 
 function viewRentedItem(requestId) {
   const requests = getJSON("rentalRequests", []);
-  const rentalItems = refreshItems();
+  const rentalItems = items;
 
   const req = requests.find(r => r.id === requestId);
   if (!req) return alert("Rental record not found.");
