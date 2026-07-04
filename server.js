@@ -255,16 +255,38 @@ app.post("/api/rental-requests", async (req, res) => {
 
 app.put("/api/rental-requests/:id", async (req, res) => {
   try {
+
+    // Update ang rental request
     const request = await RentalRequest.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true }
     );
 
-    res.json({ message: "Rental request updated.", request });
+    // Kung approved, himuong Rented ang item
+    if (request && req.body.status === "Approved") {
+      await Item.findByIdAndUpdate(request.itemId, {
+        status: "Rented"
+      });
+    }
+
+    // Kung rejected, ibalik sa Available
+    if (request && req.body.status === "Rejected") {
+      await Item.findByIdAndUpdate(request.itemId, {
+        status: "Available"
+      });
+    }
+
+    res.json({
+      message: "Rental request updated.",
+      request
+    });
+
   } catch (err) {
     console.error("Update rental request error:", err.message);
-    res.status(500).json({ message: "Error updating rental request." });
+    res.status(500).json({
+      message: "Error updating rental request."
+    });
   }
 });
 

@@ -752,21 +752,24 @@ if (req.status === "Returned" && req.rated) {
 function displayRentalRequests() {
   const box = document.getElementById("dashboardRequests");
   const currentUser = getCurrentUser();
-  if (!box) return;
-  const requests = getJSON("rentalRequests", []);
+  if (!box || !currentUser) return;
+
+  const requests = rentalRequests;
 
   const visible = currentUser.role === "owner"
     ? requests.filter(req => req.ownerEmail === currentUser.email)
     : requests.filter(req => req.renterEmail === currentUser.email);
 
   if (!visible.length) {
-    box.innerHTML = currentUser.role === "owner" ? "<p>No rental requests yet.</p>" : "<p>No requests sent yet.</p>";
+    box.innerHTML = currentUser.role === "owner"
+      ? "<p>No rental requests yet.</p>"
+      : "<p>No requests sent yet.</p>";
     return;
   }
 
   box.innerHTML = "";
+
   visible.forEach(req => {
-    const realIndex = requests.findIndex(r => r.id === req.id);
     box.innerHTML += `
       <div class="request-card mini-item">
         <b>${escapeHTML(req.itemName)}</b>
@@ -775,41 +778,42 @@ function displayRentalRequests() {
         <p><b>Delivery:</b> ${escapeHTML(req.deliveryType || "")}</p>
         <p><b>Notes:</b> ${escapeHTML(req.notes || "")}</p>
         <p>Status: <b>${escapeHTML(req.status)}</b></p>
+
         ${currentUser.role === "owner" && req.status === "Pending" ? `
-          <button onclick="updateRequestStatus(${realIndex}, 'Approved')">Approve</button>
-          <button onclick="updateRequestStatus(${realIndex}, 'Rejected')">Reject</button>
+          <button onclick="updateRequestStatus('${req._id}', 'Approved')">Approve</button>
+          <button onclick="updateRequestStatus('${req._id}', 'Rejected')">Reject</button>
         ` : ""}
       </div>
     `;
   });
 }
 
-function updateRequestStatus(realIndex, status) {
-  const requests = getJSON("rentalRequests", []);
+async function updateRequestStatus(requestId, status) {
   const currentUser = getCurrentUser();
-  if (!requests[realIndex] || requests[realIndex].ownerEmail !== currentUser.email) return;
+  const req = rentalRequests.find(r => r._id === requestId);
 
-  requests[realIndex].status = status;
+  if (!req || req.ownerEmail !== currentUser.email) return;
 
-  if (status === "Approved") {
-    const rentalItems = items;
-    const itemIndex = rentalItems.findIndex(item => item.id === requests[realIndex].itemId || (item.name === requests[realIndex].itemName && item.ownerEmail === currentUser.email));
-    if (itemIndex !== -1) {
-      rentalItems[itemIndex].status = "Rented";
-      setJSON("rentalItems", rentalItems);
-      items = rentalItems;
-    }
+  try {
+    const res = await fetch(`/api/rental-requests/${requestId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status })
+    });
+
+    const data = await res.json();
+    alert(data.message || "Request updated.");
+
+    await loadRentalRequestsFromDB();
+    await loadItemsFromDB();
+
+    displayRentalRequests();
+    displayMyPostedRentals();
+
+  } catch (err) {
+    console.error(err);
+    alert("Error updating request.");
   }
-
-  setJSON("rentalRequests", requests);
-  fetch("/api/save-approved-rental", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(requests[realIndex])
-});
-  displayRentalRequests();
-  displayMyPostedRentals();
-  displayItems(items);
 }
 
 async function deleteRental(id) {
