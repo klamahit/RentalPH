@@ -74,12 +74,31 @@ function makeId(prefix = "id") { return prefix + "-" + Date.now() + "-" + Math.r
 let item = getJSON("selectedItem", null);
 let currentUser = getJSON("currentUser", null);
 
-function findRealItem() {
-  const rentalItems = getJSON("rentalItems", []);
+async function findRealItem() {
   if (!item) return null;
-  return rentalItems.find(r => r.id && item.id && r.id === item.id) ||
-         rentalItems.find(r => r.name === item.name && r.price === item.price && r.contact === item.contact) ||
-         item;
+
+  try {
+    const res = await fetch("/api/items");
+    const rentalItems = await res.json();
+
+    const realItem =
+      rentalItems.find(r => r._id === item._id) ||
+      rentalItems.find(r => r.id === item.id) ||
+      rentalItems.find(r =>
+        r.name === item.name &&
+        r.ownerEmail === item.ownerEmail
+      ) ||
+      item;
+
+    // Update local copy aron latest ang makita
+    localStorage.setItem("selectedItem", JSON.stringify(realItem));
+
+    return realItem;
+
+  } catch (err) {
+    console.error(err);
+    return item;
+  }
 }
 
 function toggleOwnerProfile() {
@@ -120,8 +139,30 @@ function getOwnerRating(ownerEmail) {
   };
 }
 
-function renderItem() {
-  const realItem = findRealItem();
+async function loadRealItemFromDB() {
+  try {
+    const res = await fetch("/api/items");
+    const allItems = await res.json();
+
+    const found = allItems.find(r =>
+      r._id === item._id ||
+      r._id === item.id ||
+      r.id === item.id ||
+      (r.name === item.name && r.ownerEmail === item.ownerEmail)
+    );
+
+    if (found) {
+      item = found;
+      localStorage.setItem("selectedItem", JSON.stringify(found));
+    }
+  } catch (err) {
+    console.error("Load real item error:", err);
+  }
+}
+
+async function renderItem() {
+  const realItem = await findRealItem();
+  
   if (!realItem) {
     document.getElementById("detailsInfo").innerHTML = "<h2>No item selected.</h2><button onclick=\"window.location.href='index.html'\">Back Home</button>";
     return;
@@ -358,8 +399,8 @@ function sendOwnerMessage() {
   closePopups();
 }
 
+loadRealItemFromDB().then(renderItem);
 
-renderItem();
 </script>
 
 </body>
