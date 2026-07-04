@@ -81,20 +81,13 @@ async function findRealItem() {
     const res = await fetch("/api/items");
     const rentalItems = await res.json();
 
-    const realItem =
-      rentalItems.find(r => r._id === item._id) ||
-      rentalItems.find(r => r.id === item.id) ||
-      rentalItems.find(r =>
-        r.name === item.name &&
-        r.ownerEmail === item.ownerEmail
-      ) ||
-      item;
+    const itemId = item._id || item.id;
 
-    // Update local copy aron latest ang makita
-    localStorage.setItem("selectedItem", JSON.stringify(realItem));
+    const realItem = rentalItems.find(r =>
+      r._id === itemId || r.id === itemId
+    );
 
-    return realItem;
-
+    return realItem || item;
   } catch (err) {
     console.error(err);
     return item;
@@ -162,7 +155,7 @@ async function loadRealItemFromDB() {
 
 async function renderItem() {
   const realItem = await findRealItem();
-  
+
   if (!realItem) {
     document.getElementById("detailsInfo").innerHTML = "<h2>No item selected.</h2><button onclick=\"window.location.href='index.html'\">Back Home</button>";
     return;
