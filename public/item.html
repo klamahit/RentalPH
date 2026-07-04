@@ -132,26 +132,6 @@ function getOwnerRating(ownerEmail) {
   };
 }
 
-async function loadRealItemFromDB() {
-  try {
-    const res = await fetch("/api/items");
-    const allItems = await res.json();
-
-    const found = allItems.find(r =>
-      r._id === item._id ||
-      r._id === item.id ||
-      r.id === item.id ||
-      (r.name === item.name && r.ownerEmail === item.ownerEmail)
-    );
-
-    if (found) {
-      item = found;
-      localStorage.setItem("selectedItem", JSON.stringify(found));
-    }
-  } catch (err) {
-    console.error("Load real item error:", err);
-  }
-}
 
 async function renderItem() {
   const realItem = await findRealItem();
@@ -286,7 +266,7 @@ function closePopups() {
 
 async function submitRentalRequest() {
   currentUser = getJSON("currentUser", null);
-  item = findRealItem();
+  item = await findRealItem();
 
   if (!currentUser) return alert("Please login first.");
   if (!item.ownerEmail) return alert("Owner email missing.");
@@ -392,7 +372,7 @@ function sendOwnerMessage() {
   closePopups();
 }
 
-loadRealItemFromDB().then(renderItem);
+renderItem();
 
 </script>
 
