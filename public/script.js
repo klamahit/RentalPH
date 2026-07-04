@@ -1369,18 +1369,20 @@ function closeRatingPopup() {
 }
 
 function viewRentedItem(requestId) {
-  const requests = getJSON("rentalRequests", []);
-  const rentalItems = items;
+  console.log("Clicked requestId:", requestId);
+  console.log("Rental requests:", rentalRequests);
 
-  const req = requests.find(r => r.id === requestId);
+  const req = rentalRequests.find(r => r._id === requestId || r.id === requestId);
   if (!req) return alert("Rental record not found.");
 
-  const item = rentalItems.find(i => i.id === req.itemId);
-  if (!item) return alert("Item not found.");
+  const rentedItem = items.find(i =>
+    i._id === req.itemId || i.id === req.itemId
+  );
 
-  localStorage.setItem("selectedItem", JSON.stringify(item));
+  if (!rentedItem) return alert("Item not found.");
+
+  localStorage.setItem("selectedItem", JSON.stringify(rentedItem));
   localStorage.setItem("backTo", "rents");
-
   window.location.href = "item.html";
 }
 
