@@ -9,6 +9,7 @@ const messageSchema = new mongoose.Schema(
     text: String,
     readBy: [String],
     deleted: { type: Boolean, default: false },
+    deletedFor: [String],
     edited: { type: Boolean, default: false }
   },
   { timestamps: true }

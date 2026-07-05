@@ -1116,13 +1116,6 @@ function openConversation(otherEmail, markRead = true) {
   html += `
       </div>
 
-      ${messageSelectMode ? `
-  <div class="chat-delete-bar">
-    <button onclick="deleteSelectedMessagesForMe()">🗑 Delete Selected</button>
-    <button onclick="cancelMessageSelectMode()">Cancel</button>
-  </div>
-` : ""}
-
         ${messageSelectMode ? `
   <div class="chat-delete-bar">
     <button onclick="deleteSelectedMessagesForMe()">🗑 Delete Selected</button>
