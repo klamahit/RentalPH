@@ -1184,6 +1184,7 @@ function deleteSelectedMessagesForMe() {
 
   messageSelectMode = false;
   selectedMessageIds = [];
+  openConversation(activeChatEmail, false);
 }
 
 function sendChatReply() {
