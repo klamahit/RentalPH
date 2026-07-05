@@ -2,6 +2,8 @@ require("dotenv").config();
 
 
 const express = require("express");
+const app = express();
+
 const nodemailer = require("nodemailer");
 const cron = require("node-cron");
 const http = require("http");
@@ -60,14 +62,13 @@ function saveItems(items) {
   fs.writeFileSync(itemsFile, JSON.stringify(items, null, 2));
 }
 
-const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 let onlineUsers = {};
 
-app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.static("public"));
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
