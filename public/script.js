@@ -879,36 +879,30 @@ async function saveRentalEdit(id) {
   }
 }
 
-function returnRental(index) {
+async function returnRental(requestId) {
+  if (!requestId) return alert("Rental request not found.");
 
-  const rentalItems = items;
-  if (!rentalItems[index]) return;
+  try {
+    const res = await fetch(`/api/rental-requests/${requestId}/return`, {
+      method: "PUT"
+    });
 
-  // Available na usab ang item
-  rentalItems[index].status = "Available";
-  setJSON("rentalItems", rentalItems);
-  items = rentalItems;
+    const data = await res.json();
 
-  // Update rental request
-  let requests = getJSON("rentalRequests", []);
-
-  const item = rentalItems[index];
-
-  requests.forEach(req => {
-    if (
-      req.itemId === item.id &&
-      req.status === "Approved"
-    ) {
-      req.status = "Returned";
-      req.canRate = true;
+    if (!res.ok) {
+      return alert(data.message || "Return rental failed.");
     }
-  });
 
-  setJSON("rentalRequests", requests);
+    await loadItemsFromDB();
+    await loadRentalRequestsFromDB();
 
-  alert("Item returned successfully!");
+    alert(data.message || "Item returned successfully!");
 
-  showDashboardPanel("posted");
+    showDashboardPanel("posted");
+  } catch (err) {
+    console.error("Return rental error:", err);
+    alert("Return rental failed.");
+  }
 }
 
 function openMyPostedItem(item) {

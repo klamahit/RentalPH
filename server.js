@@ -386,6 +386,35 @@ app.put("/api/rental-requests/:id/rating", async (req, res) => {
   }
 });
 
+app.put("/api/rental-requests/:id/return", async (req, res) => {
+  try {
+    const request = await RentalRequest.findByIdAndUpdate(
+      req.params.id,
+      {
+        status: "Returned",
+        canRate: true
+      },
+      { new: true }
+    );
+
+    if (!request) {
+      return res.status(404).json({ message: "Rental request not found." });
+    }
+
+    await Item.findByIdAndUpdate(request.itemId, {
+      status: "Available"
+    });
+
+    res.json({
+      message: "Item returned successfully!",
+      request
+    });
+  } catch (err) {
+    console.error("Return rental error:", err);
+    res.status(500).json({ message: "Return rental failed." });
+  }
+});
+
 io.on("connection", (socket) => {
 
   console.log("User connected:", socket.id);
