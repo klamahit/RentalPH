@@ -986,6 +986,11 @@ async function getUserNameByEmail(email) {
   }
 }
 
+function displayNameFromEmail(email) {
+  const name = (email || "").split("@")[0] || "User";
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
 function getConversations() {
   const currentUser = getCurrentUser();
   const visible = getVisibleMessages();
@@ -1017,7 +1022,7 @@ function getConversations() {
     .sort((a, b) => new Date(b.date) - new Date(a.date));
 }
 
-async function displayMessagesPanel() {
+function displayMessagesPanel() {
   if (localStorage.getItem("dashboardPanel") !== "messages") return;
 
   const panel = document.getElementById("dashboardContent");
@@ -1025,11 +1030,11 @@ async function displayMessagesPanel() {
 
   const currentUser = getCurrentUser();
   const conversations = getConversations();
-  for (const convo of conversations) {
-  if (convo.otherName === "Owner" || convo.otherName.includes("@")) {
-    convo.otherName = await getUserNameByEmail(convo.otherEmail);
+  conversations.forEach(convo => {
+  if (!convo.otherName || convo.otherName === "Owner" || convo.otherName.includes("@")) {
+    convo.otherName = displayNameFromEmail(convo.otherEmail);
   }
-}
+});
 
   let html = `
     <div class="messages-shell">
@@ -1100,7 +1105,7 @@ function filterConversationList(keyword) {
   });
 }
 
-async function openConversation(otherEmail, markRead = true) {
+function openConversation(otherEmail, markRead = true) {
   activeChatEmail = otherEmail;
 
   const panel = document.getElementById("dashboardContent");
@@ -1136,8 +1141,8 @@ async function openConversation(otherEmail, markRead = true) {
 
 let otherName = possibleNames[possibleNames.length - 1] || otherEmail;
 
-if (otherName === "Owner" || otherName.includes("@")) {
-  otherName = await getUserNameByEmail(otherEmail);
+if (!otherName || otherName === "Owner" || otherName.includes("@")) {
+  otherName = displayNameFromEmail(otherEmail);
 }
 
   const avatarLetter = (otherName || "?").charAt(0).toUpperCase();
