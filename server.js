@@ -152,6 +152,68 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
+// UPDATE USER PROFILE
+app.put("/api/users/profile", async (req, res) => {
+  try {
+    const { email, name, contact } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required." });
+    }
+
+    const updatedUser = await User.findOneAndUpdate(
+      { email },
+      { name, contact },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    res.json({
+      message: "Profile updated successfully!",
+      user: updatedUser
+    });
+  } catch (err) {
+    console.error("Profile update error:", err);
+    res.status(500).json({ message: "Profile update failed." });
+  }
+});
+
+
+// CHANGE PASSWORD
+app.put("/api/users/password", async (req, res) => {
+  try {
+    const { email, oldPassword, newPassword } = req.body;
+
+    if (!email || !oldPassword || !newPassword) {
+      return res.status(400).json({ message: "Missing required fields." });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    if (user.password !== oldPassword) {
+      return res.status(400).json({ message: "Current password is incorrect." });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    res.json({
+      message: "Password updated successfully!",
+      user
+    });
+  } catch (err) {
+    console.error("Password update error:", err);
+    res.status(500).json({ message: "Password update failed." });
+  }
+});
+
 app.get("/api/items", async (req, res) => {
   try {
     const items = await Item.find().sort({ createdAt: -1 });

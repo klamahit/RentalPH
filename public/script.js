@@ -1181,17 +1181,38 @@ function editProfile() {
   `;
 }
 
-function saveDashboardProfile() {
+async function saveDashboardProfile() {
   const currentUser = getCurrentUser();
-  const users = getJSON("rentalphUsers", []);
-  currentUser.name = document.getElementById("profileEditName").value.trim();
-  currentUser.contact = document.getElementById("profileEditContact").value.trim();
-  const index = users.findIndex(u => u.email === currentUser.email);
-  if (index !== -1) users[index] = currentUser;
-  setJSON("currentUser", currentUser);
-  setJSON("rentalphUsers", users);
-  updateAuthUI();
-  showDashboardPanel("profile");
+
+  if (!currentUser) return alert("Please login first.");
+
+  const name = document.getElementById("profileEditName").value.trim();
+  const contact = document.getElementById("profileEditContact").value.trim();
+
+  try {
+    const res = await fetch("/api/users/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: currentUser.email,
+        name,
+        contact
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) return alert(data.message || "Profile update failed.");
+
+    localStorage.setItem("currentUser", JSON.stringify(data.user));
+
+    updateAuthUI();
+    showDashboardPanel("profile");
+    alert(data.message || "Profile updated successfully!");
+  } catch (err) {
+    console.error("Profile update error:", err);
+    alert("Profile update failed.");
+  }
 }
 
 function showSettings() { showPage("settings"); }
@@ -1208,17 +1229,37 @@ function showEditProfileForm() {
   `;
 }
 
-function saveProfileForm() {
+async function saveProfileForm() {
   const currentUser = getCurrentUser();
-  const users = getJSON("rentalphUsers", []);
-  currentUser.name = document.getElementById("editName").value.trim();
-  currentUser.contact = document.getElementById("editContact").value.trim();
-  const index = users.findIndex(u => u.email === currentUser.email);
-  if (index !== -1) users[index] = currentUser;
-  setJSON("currentUser", currentUser);
-  setJSON("rentalphUsers", users);
-  updateAuthUI();
-  alert("Profile updated successfully!");
+
+  if (!currentUser) return alert("Please login first.");
+
+  const name = document.getElementById("editName").value.trim();
+  const contact = document.getElementById("editContact").value.trim();
+
+  try {
+    const res = await fetch("/api/users/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: currentUser.email,
+        name,
+        contact
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) return alert(data.message || "Profile update failed.");
+
+    localStorage.setItem("currentUser", JSON.stringify(data.user));
+
+    updateAuthUI();
+    alert(data.message || "Profile updated successfully!");
+  } catch (err) {
+    console.error("Profile update error:", err);
+    alert("Profile update failed.");
+  }
 }
 
 function showChangePasswordForm() {
@@ -1233,20 +1274,41 @@ function showChangePasswordForm() {
   `;
 }
 
-function saveNewPassword() {
+async function saveNewPassword() {
   const currentUser = getCurrentUser();
-  const users = getJSON("rentalphUsers", []);
-  const oldPass = document.getElementById("oldPassword").value;
-  const newPass = document.getElementById("newPassword").value;
+
+  if (!currentUser) return alert("Please login first.");
+
+  const oldPassword = document.getElementById("oldPassword").value;
+  const newPassword = document.getElementById("newPassword").value;
   const confirmPass = document.getElementById("confirmNewPassword").value;
-  if (oldPass !== currentUser.password) return alert("Current password is incorrect.");
-  if (newPass !== confirmPass) return alert("New passwords do not match.");
-  currentUser.password = newPass;
-  const index = users.findIndex(u => u.email === currentUser.email);
-  if (index !== -1) users[index] = currentUser;
-  setJSON("currentUser", currentUser);
-  setJSON("rentalphUsers", users);
-  alert("Password updated successfully!");
+
+  if (newPassword !== confirmPass) {
+    return alert("New passwords do not match.");
+  }
+
+  try {
+    const res = await fetch("/api/users/password", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: currentUser.email,
+        oldPassword,
+        newPassword
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) return alert(data.message || "Password update failed.");
+
+    localStorage.setItem("currentUser", JSON.stringify(data.user));
+
+    alert(data.message || "Password updated successfully!");
+  } catch (err) {
+    console.error("Password update error:", err);
+    alert("Password update failed.");
+  }
 }
 
   window.onload = async function() {
