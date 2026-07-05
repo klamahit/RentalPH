@@ -167,7 +167,7 @@ const requests = rentalRequests;
 
 const alreadyRequested = currentUser && requests.some(req =>
   (String(req.itemId) === String(item._id) || String(req.itemId) === String(item.id)) &&
-  req.renterEmail === currentUser.email &&
+  (req.renterEmail || "").toLowerCase() === currentUser.email.toLowerCase() &&
   ["Pending", "Approved"].includes(req.status)
 );
 
