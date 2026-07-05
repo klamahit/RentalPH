@@ -352,6 +352,40 @@ app.put("/api/rental-requests/:id", async (req, res) => {
   }
 });
 
+app.put("/api/rental-requests/:id/rating", async (req, res) => {
+  try {
+    const { rating, review } = req.body;
+
+    const request = await RentalRequest.findByIdAndUpdate(
+      req.params.id,
+      {
+        rated: true,
+        rating,
+        review,
+        canRate: false
+      },
+      { new: true }
+    );
+
+    if (!request) {
+      return res.status(404).json({
+        message: "Rental request not found."
+      });
+    }
+
+    res.json({
+      message: "Rating submitted successfully!",
+      request
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      message: "Failed to submit rating."
+    });
+  }
+});
+
 io.on("connection", (socket) => {
 
   console.log("User connected:", socket.id);

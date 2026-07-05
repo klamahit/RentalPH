@@ -1395,34 +1395,48 @@ function openRatingPopup(requestId) {
 
 }
 
-function submitRating() {
+async function submitRating() {
+
   if (!currentRatingRequest) return;
 
   const rating = Number(document.getElementById("ratingStars").value);
   const review = document.getElementById("ratingReview").value.trim();
 
-  let requests = getJSON("rentalRequests", []);
+  try {
 
-  requests = requests.map(req => {
-    if (req.id === currentRatingRequest) {
-      return {
-        ...req,
-        rated: true,
-        rating: rating,
-        review: review,
-        canRate: false
-      };
+    const res = await fetch(`/api/rental-requests/${currentRatingRequest}/rating`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        rating,
+        review
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      return alert(data.message || "Rating failed.");
     }
-    return req;
-  });
 
-  setJSON("rentalRequests", requests);
+    closeRatingPopup();
 
-  closeRatingPopup();
+    await loadRentalRequestsFromDB();
 
-  alert("Thank you for rating!");
+    alert(data.message);
 
-  displayMyRents();
+    displayMyRents();
+
+  } catch (err) {
+
+    console.error(err);
+
+    alert("Rating failed.");
+
+  }
+
 }
 
 function closeRatingPopup() {
