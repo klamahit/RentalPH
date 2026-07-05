@@ -31,7 +31,7 @@ socket.on("loadMessages", (messages) => {
 
   if (activeChatEmail) {
     openConversation(activeChatEmail, false);
-  } else if (document.getElementById("chatList")) {
+  } else if (localStorage.getItem("dashboardPanel") === "messages") {
     displayMessagesPanel();
   }
 });
@@ -47,11 +47,12 @@ socket.on("onlineUsers", (users) => {
 });
 
 socket.on("newMessage", (msg) => {
-  liveMessages.push(msg);
+  const exists = liveMessages.some(m => m._id === msg._id);
+  if (!exists) liveMessages.push(msg);
 
   if (activeChatEmail) {
-    openConversation(activeChatEmail);
-  } else {
+    openConversation(activeChatEmail, false);
+  } else if (localStorage.getItem("dashboardPanel") === "messages") {
     displayMessagesPanel();
   }
 });
@@ -1077,7 +1078,7 @@ function openConversation(otherEmail, markRead = true) {
   let html = `
     <div class="chat-page">
       <div class="chat-top">
-        <button onclick="activeChatEmail = null; displayMessagesPanel()">←</button>
+  <button onclick="activeChatEmail = null; messageSelectMode = false; selectedMessageIds = []; displayMessagesPanel()">←</button>
         <div>
           <h2>${escapeHTML(otherName)}</h2>
           <button onclick="toggleMessageSelectMode()">⋮</button>
@@ -1089,6 +1090,9 @@ function openConversation(otherEmail, markRead = true) {
   }
 </span>
         </div>
+
+        <button onclick="toggleMessageSelectMode()">⋮</button>
+
       </div>
 
       <div id="chatMessagesBox" class="chat-body">
@@ -1106,6 +1110,7 @@ function openConversation(otherEmail, markRead = true) {
     <small>${formatMessageTime(getMessageTime(msg))}</small>
   </div>
 `;
+
   });
 
   html += `
@@ -1118,12 +1123,19 @@ function openConversation(otherEmail, markRead = true) {
   </div>
 ` : ""}
 
+        ${messageSelectMode ? `
+  <div class="chat-delete-bar">
+    <button onclick="deleteSelectedMessagesForMe()">🗑 Delete Selected</button>
+    <button onclick="cancelMessageSelectMode()">Cancel</button>
+  </div>
+` : ""}
+
       <div class="chat-reply-bar">
         <input
           id="replyInput"
           placeholder="Type your message..."
           onkeydown="handleChatEnter(event)"
-oninput="handleTyping()"
+          oninput="handleTyping()"
         >
         <button onclick="sendChatReply()">➤</button>
       </div>
