@@ -732,16 +732,18 @@ async function displayMyRents() {
   });
 }
 
-function displayRentalRequests() {
+async function displayRentalRequests() {
   const box = document.getElementById("dashboardRequests");
   const currentUser = getCurrentUser();
   if (!box || !currentUser) return;
 
-  const requests = rentalRequests;
+  await loadRentalRequestsFromDB();
+
+  const userEmail = currentUser.email.trim().toLowerCase();
 
   const visible = currentUser.role === "owner"
-    ? requests.filter(req => req.ownerEmail === currentUser.email)
-    : requests.filter(req => req.renterEmail === currentUser.email);
+    ? rentalRequests.filter(req => (req.ownerEmail || "").trim().toLowerCase() === userEmail)
+    : rentalRequests.filter(req => (req.renterEmail || "").trim().toLowerCase() === userEmail);
 
   if (!visible.length) {
     box.innerHTML = currentUser.role === "owner"
@@ -1368,9 +1370,9 @@ function closeRatingPopup() {
   currentRatingRequest = null;
 }
 
-function viewRentedItem(requestId) {
-  console.log("Clicked requestId:", requestId);
-  console.log("Rental requests:", rentalRequests);
+async function viewRentedItem(requestId) {
+  await loadRentalRequestsFromDB();
+  await loadItemsFromDB();
 
   const req = rentalRequests.find(r => r._id === requestId || r.id === requestId);
   if (!req) return alert("Rental record not found.");
@@ -1383,6 +1385,7 @@ function viewRentedItem(requestId) {
 
   localStorage.setItem("selectedItem", JSON.stringify(rentedItem));
   localStorage.setItem("backTo", "rents");
+
   window.location.href = "item.html";
 }
 
@@ -1395,32 +1398,11 @@ function backToMyRents() {
     window.location.href="index.html";
 
 }
+
 function getOwnerRating(ownerEmail) {
-  const requests = getJSON("rentalRequests", []);
-
-  const reviews = requests.filter(req =>
-    req.ownerEmail === ownerEmail &&
-    req.rated &&
-    req.rating
-  );
-
-  if (!reviews.length) {
-    return { average: "No rating yet", count: 0 };
-  }
-
-  const total = reviews.reduce((sum, req) => sum + Number(req.rating), 0);
-  const average = (total / reviews.length).toFixed(1);
-
-  return {
-    average,
-    count: reviews.length
-  };
-}
-function getOwnerRating(ownerEmail) {
-  const requests = getJSON("rentalRequests", []);
   const email = (ownerEmail || "").trim().toLowerCase();
 
-  const reviews = requests.filter(req =>
+  const reviews = rentalRequests.filter(req =>
     (req.ownerEmail || "").trim().toLowerCase() === email &&
     req.rated &&
     req.rating
