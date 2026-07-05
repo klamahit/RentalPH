@@ -942,9 +942,14 @@ function getVisibleMessages() {
   const currentUser = getCurrentUser();
   if (!currentUser) return [];
 
+  const userEmail = currentUser.email.toLowerCase();
+
   return liveMessages.filter(msg =>
-    (msg.senderEmail || "").toLowerCase() === currentUser.email.toLowerCase() ||
-    (msg.receiverEmail || "").toLowerCase() === currentUser.email.toLowerCase()
+    (
+      (msg.senderEmail || "").toLowerCase() === userEmail ||
+      (msg.receiverEmail || "").toLowerCase() === userEmail
+    ) &&
+    (!msg.deletedFor || !msg.deletedFor.includes(currentUser.email))
   );
 }
 
