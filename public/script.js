@@ -1083,6 +1083,7 @@ function openConversation(otherEmail, markRead = true) {
 
   const panel = document.getElementById("dashboardContent");
   const currentUser = getCurrentUser();
+  if (!panel || !currentUser) return;
 
   if (markRead) {
     socket.emit("markAsRead", {
@@ -1092,32 +1093,44 @@ function openConversation(otherEmail, markRead = true) {
   }
 
   const conversation = liveMessages.filter(msg =>
-  (
-    (msg.senderEmail === currentUser.email && msg.receiverEmail === otherEmail) ||
-    (msg.senderEmail === otherEmail && msg.receiverEmail === currentUser.email)
-  ) &&
-  (!msg.deletedFor || !msg.deletedFor.includes(currentUser.email))
-);
+    (
+      (msg.senderEmail === currentUser.email && msg.receiverEmail === otherEmail) ||
+      (msg.senderEmail === otherEmail && msg.receiverEmail === currentUser.email)
+    ) &&
+    (!msg.deletedFor || !msg.deletedFor.includes(currentUser.email))
+  );
+
+  if (!conversation.length) {
+    return displayMessagesPanel();
+  }
 
   const otherName =
     conversation[0].senderEmail === currentUser.email
       ? conversation[0].receiverName
       : conversation[0].senderName;
 
+  const avatarLetter = (otherName || "?").charAt(0).toUpperCase();
+
   let html = `
     <div class="chat-page">
       <div class="chat-top">
-  <button onclick="activeChatEmail = null; messageSelectMode = false; selectedMessageIds = []; displayMessagesPanel()">←</button>
+        <button onclick="activeChatEmail = null; messageSelectMode = false; selectedMessageIds = []; displayMessagesPanel()">←</button>
+
+        <div class="messenger-avatar">${avatarLetter}</div>
+
         <div>
           <h2>${escapeHTML(otherName)}</h2>
-          <button onclick="toggleMessageSelectMode()">⋮</button>
           <span>
-  ${
-    typingUsers[otherEmail]
-    ? "typing..."
-    : onlineUsers[otherEmail] ? "🟢 Online" : "⚪ Offline"
-  }
-</span>
+            ${
+              typingUsers[otherEmail]
+                ? "typing..."
+                : onlineUsers[otherEmail] ? "🟢 Active now" : "⚪ Offline"
+            }
+          </span>
+        </div>
+
+        <div class="chat-actions">
+          <button onclick="toggleMessageSelectMode()">⋮</button>
         </div>
       </div>
 
@@ -1128,26 +1141,25 @@ function openConversation(otherEmail, markRead = true) {
     const mine = msg.senderEmail === currentUser.email;
 
     html += `
-  <div class="chat-bubble ${mine ? "my-message" : "other-message"}">
-    ${messageSelectMode ? `
-      <input type="checkbox" onchange="toggleSelectedMessage('${msg._id}', this.checked)">
-    ` : ""}
-    <div>${escapeHTML(msg.text)}</div>
-    <small>${formatMessageTime(getMessageTime(msg))}</small>
-  </div>
-`;
-
+      <div class="chat-bubble ${mine ? "my-message" : "other-message"}">
+        ${messageSelectMode ? `
+          <input type="checkbox" onchange="toggleSelectedMessage('${msg._id}', this.checked)">
+        ` : ""}
+        <div>${escapeHTML(msg.text)}</div>
+        <small>${formatMessageTime(getMessageTime(msg))}</small>
+      </div>
+    `;
   });
 
   html += `
       </div>
 
-        ${messageSelectMode ? `
-  <div class="chat-delete-bar">
-    <button onclick="deleteSelectedMessagesForMe()">🗑 Delete Selected</button>
-    <button onclick="cancelMessageSelectMode()">Cancel</button>
-  </div>
-` : ""}
+      ${messageSelectMode ? `
+        <div class="chat-delete-bar">
+          <button onclick="deleteSelectedMessagesForMe()">🗑 Delete Selected</button>
+          <button onclick="cancelMessageSelectMode()">Cancel</button>
+        </div>
+      ` : ""}
 
       <div class="chat-reply-bar">
         <input
