@@ -3119,3 +3119,25 @@ cursor:pointer;
   pointer-events: none !important;
   z-index: 0 !important;
 }
+/* Final chat background polish */
+.chat-page .chat-body {
+  background:
+    radial-gradient(circle at 12% 20%, rgba(11,94,215,.14), transparent 28%),
+    radial-gradient(circle at 88% 18%, rgba(255,107,0,.08), transparent 24%),
+    radial-gradient(circle at 75% 90%, rgba(126,87,255,.10), transparent 30%),
+    linear-gradient(135deg,#eef6ff 0%,#f9fcff 45%,#f2f4ff 100%) !important;
+}
+
+.chat-page .chat-body::before {
+  content: "RentalPH" !important;
+  font-size: clamp(60px, 8vw, 120px) !important;
+  color: rgba(11, 94, 215, 0.055) !important;
+  transform: translateY(-30px);
+}
+
+.chat-page .chat-body::after {
+  background-image:
+    radial-gradient(circle, rgba(11,94,215,.14) 1.4px, transparent 1.4px),
+    radial-gradient(circle, rgba(255,107,0,.08) 1.1px, transparent 1.1px) !important;
+  background-size: 34px 34px, 60px 60px !important;
+}
