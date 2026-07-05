@@ -243,7 +243,7 @@ topBack.innerHTML = `
 </button>
 
 <div id="ownerProfileBox" class="hidden-info-box">
-  <p><b>Name:</b> ${escapeHTML(item.owner || "Owner")}</p>
+  <p><b>Name:</b> ${escapeHTML(item.ownerName || item.owner || item.ownerEmail || "Owner")}</p>
   <p>✅ Verified Government ID</p>
   <p>📱 Verified Contact Number</p>
   <p>📞 ${escapeHTML(item.contact || "N/A")}</p>
@@ -309,7 +309,7 @@ async function submitRentalRequest() {
     itemImage: item.image || "",
     price: item.price || "",
     ownerEmail: item.ownerEmail,
-    ownerName: item.owner || "Owner",
+    ownerName: item.ownerName || item.owner || item.ownerEmail || "Owner",
     renterName: currentUser.name,
     renterEmail: currentUser.email,
     pickupDate,
@@ -369,8 +369,7 @@ function sendOwnerMessage() {
     alert("Please type a message.");
     return;
   }
-  const ownerName = item.owner || "Owner";
-
+  const ownerName = item.ownerName || item.owner || item.ownerEmail || "Owner";
   if (!ownerEmail) {
     alert("Owner email not found. This item needs ownerEmail.");
     return;
