@@ -488,6 +488,22 @@ socket.on("userOnline", (user) => {
   }
 });
 
+socket.on("deleteMessagesForMe", async (data) => {
+  try {
+    const { messageIds, userEmail } = data;
+
+    await Message.updateMany(
+      { _id: { $in: messageIds } },
+      { $addToSet: { deletedFor: userEmail } }
+    );
+
+    const messages = await Message.find().sort({ createdAt: 1 });
+    io.emit("loadMessages", messages);
+  } catch (err) {
+    console.error("Delete messages for me error:", err);
+  }
+});
+
 socket.on("typing", (data) => {
   io.emit("typing", data);
 });

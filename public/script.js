@@ -934,6 +934,9 @@ function requestRental(item) {
 
 let activeChatEmail = null;
 
+let messageSelectMode = false;
+let selectedMessageIds = [];
+
 function getVisibleMessages() {
   const currentUser = getCurrentUser();
   if (!currentUser) return [];
@@ -946,6 +949,18 @@ function getVisibleMessages() {
 
 function getMessageTime(msg) {
   return msg.createdAt || msg.date || msg.updatedAt || new Date().toISOString();
+}
+
+function formatMessageTime(dateValue) {
+  const date = new Date(dateValue);
+  if (isNaN(date)) return "";
+
+  return date.toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
 }
 
 function getConversations() {
@@ -1047,9 +1062,12 @@ function openConversation(otherEmail, markRead = true) {
   }
 
   const conversation = liveMessages.filter(msg =>
+  (
     (msg.senderEmail === currentUser.email && msg.receiverEmail === otherEmail) ||
     (msg.senderEmail === otherEmail && msg.receiverEmail === currentUser.email)
-  );
+  ) &&
+  (!msg.deletedFor || !msg.deletedFor.includes(currentUser.email))
+);
 
   const otherName =
     conversation[0].senderEmail === currentUser.email
@@ -1062,6 +1080,7 @@ function openConversation(otherEmail, markRead = true) {
         <button onclick="activeChatEmail = null; displayMessagesPanel()">←</button>
         <div>
           <h2>${escapeHTML(otherName)}</h2>
+          <button onclick="toggleMessageSelectMode()">⋮</button>
           <span>
   ${
     typingUsers[otherEmail]
@@ -1079,15 +1098,25 @@ function openConversation(otherEmail, markRead = true) {
     const mine = msg.senderEmail === currentUser.email;
 
     html += `
-      <div class="chat-bubble ${mine ? "my-message" : "other-message"}">
-        <div>${escapeHTML(msg.text)}</div>
-        <small>${escapeHTML(msg.date)}</small>
-      </div>
-    `;
+  <div class="chat-bubble ${mine ? "my-message" : "other-message"}">
+    ${messageSelectMode ? `
+      <input type="checkbox" onchange="toggleSelectedMessage('${msg._id}', this.checked)">
+    ` : ""}
+    <div>${escapeHTML(msg.text)}</div>
+    <small>${formatMessageTime(getMessageTime(msg))}</small>
+  </div>
+`;
   });
 
   html += `
       </div>
+
+      ${messageSelectMode ? `
+  <div class="chat-delete-bar">
+    <button onclick="deleteSelectedMessagesForMe()">🗑 Delete Selected</button>
+    <button onclick="cancelMessageSelectMode()">Cancel</button>
+  </div>
+` : ""}
 
       <div class="chat-reply-bar">
         <input
@@ -1105,6 +1134,44 @@ oninput="handleTyping()"
 
   const chatBox = document.getElementById("chatMessagesBox");
   if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function toggleMessageSelectMode() {
+  messageSelectMode = true;
+  selectedMessageIds = [];
+  openConversation(activeChatEmail, false);
+}
+
+function cancelMessageSelectMode() {
+  messageSelectMode = false;
+  selectedMessageIds = [];
+  openConversation(activeChatEmail, false);
+}
+
+function toggleSelectedMessage(messageId, checked) {
+  if (checked) {
+    if (!selectedMessageIds.includes(messageId)) {
+      selectedMessageIds.push(messageId);
+    }
+  } else {
+    selectedMessageIds = selectedMessageIds.filter(id => id !== messageId);
+  }
+}
+
+function deleteSelectedMessagesForMe() {
+  const currentUser = getCurrentUser();
+
+  if (!selectedMessageIds.length) {
+    return alert("Please select messages to delete.");
+  }
+
+  socket.emit("deleteMessagesForMe", {
+    messageIds: selectedMessageIds,
+    userEmail: currentUser.email
+  });
+
+  messageSelectMode = false;
+  selectedMessageIds = [];
 }
 
 function sendChatReply() {
