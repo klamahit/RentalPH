@@ -944,32 +944,39 @@ function getVisibleMessages() {
   );
 }
 
+function getMessageTime(msg) {
+  return msg.createdAt || msg.date || msg.updatedAt || new Date().toISOString();
+}
+
 function getConversations() {
   const currentUser = getCurrentUser();
   const visible = getVisibleMessages();
   const conversations = {};
-  visible.sort((a,b)=>new Date(a.date)-new Date(b.date));
 
-  visible.forEach(msg => {
-    const otherEmail =
-      msg.senderEmail === currentUser.email
-        ? msg.receiverEmail
-        : msg.senderEmail;
+  visible
+    .slice()
+    .sort((a, b) => new Date(getMessageTime(a)) - new Date(getMessageTime(b)))
+    .forEach(msg => {
+      const otherEmail =
+        msg.senderEmail === currentUser.email
+          ? msg.receiverEmail
+          : msg.senderEmail;
 
-    const otherName =
-      msg.senderEmail === currentUser.email
-        ? msg.receiverName
-        : msg.senderName;
+      const otherName =
+        msg.senderEmail === currentUser.email
+          ? msg.receiverName
+          : msg.senderName;
 
-    conversations[otherEmail] = {
-      otherEmail,
-      otherName,
-      lastMessage: msg.text,
-      date: msg.date || new Date().toISOString()
-    };
-  });
+      conversations[otherEmail] = {
+        otherEmail,
+        otherName,
+        lastMessage: msg.text,
+        date: getMessageTime(msg)
+      };
+    });
 
-  return Object.values(conversations);
+  return Object.values(conversations)
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
 }
 
 function displayMessagesPanel() {
