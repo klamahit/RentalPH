@@ -3141,3 +3141,57 @@ cursor:pointer;
     radial-gradient(circle, rgba(255,107,0,.08) 1.1px, transparent 1.1px) !important;
   background-size: 34px 34px, 60px 60px !important;
 }
+/* ===== Premium Dashboard Bottom Navigation ===== */
+
+.dashboard-bottom-nav {
+  height: 82px !important;
+  background: rgba(255,255,255,.96) !important;
+  backdrop-filter: blur(18px);
+  border-top: 1px solid #e8eef8 !important;
+  box-shadow: 0 -12px 35px rgba(15, 23, 42, .10) !important;
+  padding: 0 18px;
+}
+
+.dashboard-bottom-nav button {
+  position: relative;
+  background: transparent !important;
+  color: #64748b !important;
+  border: none !important;
+  border-radius: 18px;
+  margin: 8px 6px;
+  transition: .25s ease;
+}
+
+.dashboard-bottom-nav button:hover {
+  background: #eef5ff !important;
+  color: #0b5ed7 !important;
+  transform: translateY(-4px);
+}
+
+.dashboard-bottom-nav button.active {
+  background: linear-gradient(135deg, #eaf3ff, #ffffff) !important;
+  color: #0b5ed7 !important;
+  box-shadow: 0 8px 22px rgba(11, 94, 215, .16);
+}
+
+.dashboard-bottom-nav button i,
+.dashboard-bottom-nav button .nav-icon {
+  font-size: 24px !important;
+  margin-bottom: 4px;
+}
+
+.dashboard-bottom-nav button span,
+.dashboard-bottom-nav button .nav-text {
+  font-size: 12px !important;
+  font-weight: 800 !important;
+}
+
+.dashboard-bottom-nav button.active::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  width: 34px;
+  height: 4px;
+  border-radius: 999px;
+  background: #0b5ed7;
+}
