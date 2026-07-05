@@ -710,7 +710,7 @@ async function displayMyRents() {
   myRents.forEach(req => {
     let extraButton = "";
 
-    if (req.status === "Returned" && req.canRate && !req.rated) {
+    if (req.status === "Returned" && !req.rated) {
       extraButton = `<br><br><button onclick="openRatingPopup('${req._id}')">⭐ Rate Item</button>`;
     }
 
@@ -910,16 +910,18 @@ async function returnRental(requestId) {
 async function returnRentalByItem(itemId) {
   await loadRentalRequestsFromDB();
 
-  const request = rentalRequests.find(req =>
+  const approvedRequests = rentalRequests.filter(req =>
     String(req.itemId) === String(itemId) &&
     req.status === "Approved"
   );
 
-  if (!request) {
+  if (!approvedRequests.length) {
     return alert("Approved rental request not found for this item.");
   }
 
-  returnRental(request._id);
+  const latestRequest = approvedRequests[approvedRequests.length - 1];
+
+  returnRental(latestRequest._id);
 }
 
 function openMyPostedItem(item) {
