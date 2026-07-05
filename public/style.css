@@ -3448,3 +3448,19 @@ img {
     padding: 22px !important;
   }
 }
+
+/* FINAL FIX: bottom nav stays stable */
+.dashboard-bottom-nav {
+  position: fixed !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: 14px !important;
+  transform: translateX(-50%) !important;
+  width: min(850px, calc(100% - 28px)) !important;
+  height: 78px !important;
+  z-index: 99999 !important;
+}
+
+#dashboardContent {
+  padding-bottom: 125px !important;
+}

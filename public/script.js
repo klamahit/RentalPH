@@ -7,16 +7,16 @@ socket.on("typing", (data) => {
   typingUsers[data.senderEmail] = data;
 
   if (activeChatEmail === data.senderEmail) {
-    openConversation(activeChatEmail, false);
-  }
+    updateTypingStatus();
+}
 });
 
 socket.on("stopTyping", (data) => {
   delete typingUsers[data.senderEmail];
 
   if (activeChatEmail === data.senderEmail) {
-    openConversation(activeChatEmail, false);
-  }
+    updateTypingStatus();
+}
 });
 
 socket.on("connect", () => {
@@ -30,7 +30,8 @@ socket.on("loadMessages", (messages) => {
   liveMessages = messages;
 
   if (activeChatEmail) {
-    openConversation(activeChatEmail, false);
+    renderChatMessagesOnly();
+    updateTypingStatus();
   } else if (localStorage.getItem("dashboardPanel") === "messages") {
     displayMessagesPanel();
   }
@@ -40,10 +41,10 @@ socket.on("onlineUsers", (users) => {
   onlineUsers = users;
 
   if (activeChatEmail) {
-    openConversation(activeChatEmail, false);
-  } else {
+    updateTypingStatus();
+} else {
     displayMessagesPanel();
-  }
+}
 });
 
 socket.on("newMessage", (msg) => {
@@ -51,7 +52,8 @@ socket.on("newMessage", (msg) => {
   if (!exists) liveMessages.push(msg);
 
   if (activeChatEmail) {
-    openConversation(activeChatEmail, false);
+    renderChatMessagesOnly();
+    updateTypingStatus();
   } else if (localStorage.getItem("dashboardPanel") === "messages") {
     displayMessagesPanel();
   }
@@ -969,6 +971,21 @@ function formatMessageTime(dateValue) {
   });
 }
 
+async function getUserNameByEmail(email) {
+  try {
+    const res = await fetch("/api/users");
+    const users = await res.json();
+
+    const user = users.find(u =>
+      (u.email || "").toLowerCase() === (email || "").toLowerCase()
+    );
+
+    return user ? user.name : email;
+  } catch (err) {
+    return email;
+  }
+}
+
 function getConversations() {
   const currentUser = getCurrentUser();
   const visible = getVisibleMessages();
@@ -1008,6 +1025,11 @@ function displayMessagesPanel() {
 
   const currentUser = getCurrentUser();
   const conversations = getConversations();
+  for (const convo of conversations) {
+  if (convo.otherName === "Owner" || convo.otherName.includes("@")) {
+    convo.otherName = await getUserNameByEmail(convo.otherEmail);
+  }
+}
 
   let html = `
     <div class="messages-shell">
@@ -1078,7 +1100,7 @@ function filterConversationList(keyword) {
   });
 }
 
-function openConversation(otherEmail, markRead = true) {
+async function openConversation(otherEmail, markRead = true) {
   activeChatEmail = otherEmail;
 
   const panel = document.getElementById("dashboardContent");
@@ -1104,10 +1126,19 @@ function openConversation(otherEmail, markRead = true) {
     return displayMessagesPanel();
   }
 
-  const otherName =
-    conversation[0].senderEmail === currentUser.email
-      ? conversation[0].receiverName
-      : conversation[0].senderName;
+  const possibleNames = conversation.map(msg =>
+  msg.senderEmail === otherEmail ? msg.senderName : msg.receiverName
+).filter(name =>
+  name &&
+  name !== "Owner" &&
+  !name.includes("@")
+);
+
+let otherName = possibleNames[possibleNames.length - 1] || otherEmail;
+
+if (otherName === "Owner" || otherName.includes("@")) {
+  otherName = await getUserNameByEmail(otherEmail);
+}
 
   const avatarLetter = (otherName || "?").charAt(0).toUpperCase();
 
@@ -1120,13 +1151,15 @@ function openConversation(otherEmail, markRead = true) {
 
         <div>
           <h2>${escapeHTML(otherName)}</h2>
-          <span>
-            ${
-              typingUsers[otherEmail]
-                ? "typing..."
-                : onlineUsers[otherEmail] ? "🟢 Active now" : "⚪ Offline"
-            }
-          </span>
+          <span id="typingStatus">
+  ${
+    typingUsers[otherEmail]
+      ? "typing..."
+      : onlineUsers[otherEmail]
+      ? "🟢 Active now"
+      : "⚪ Offline"
+  }
+</span>
         </div>
 
         <div class="chat-actions">
@@ -1177,6 +1210,56 @@ function openConversation(otherEmail, markRead = true) {
 
   const chatBox = document.getElementById("chatMessagesBox");
   if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function renderChatMessagesOnly() {
+  const box = document.getElementById("chatMessagesBox");
+  const currentUser = getCurrentUser();
+
+  if (!box || !currentUser || !activeChatEmail) return;
+
+  const conversation = liveMessages.filter(msg =>
+    (
+      (msg.senderEmail === currentUser.email && msg.receiverEmail === activeChatEmail) ||
+      (msg.senderEmail === activeChatEmail && msg.receiverEmail === currentUser.email)
+    ) &&
+    (!msg.deletedFor || !msg.deletedFor.includes(currentUser.email))
+  );
+
+  let html = "";
+
+  conversation.forEach(msg => {
+    const mine = msg.senderEmail === currentUser.email;
+
+    html += `
+      <div class="chat-bubble ${mine ? "my-message" : "other-message"}">
+        ${messageSelectMode ? `
+          <input type="checkbox" onchange="toggleSelectedMessage('${msg._id}', this.checked)">
+        ` : ""}
+        <div>${escapeHTML(msg.text)}</div>
+        <small>${formatMessageTime(getMessageTime(msg))}</small>
+      </div>
+    `;
+  });
+
+  box.innerHTML = html;
+  box.scrollTop = box.scrollHeight;
+}
+
+function updateTypingStatus() {
+  if (!activeChatEmail) return;
+
+  const status = document.getElementById("typingStatus");
+
+  if (!status) return;
+
+  if (typingUsers[activeChatEmail]) {
+    status.textContent = "typing...";
+  } else if (onlineUsers[activeChatEmail]) {
+    status.textContent = "🟢 Active now";
+  } else {
+    status.textContent = "⚪ Offline";
+  }
 }
 
 function toggleMessageSelectMode() {
