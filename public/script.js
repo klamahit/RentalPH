@@ -1017,7 +1017,7 @@ function getConversations() {
     .sort((a, b) => new Date(b.date) - new Date(a.date));
 }
 
-function displayMessagesPanel() {
+async function displayMessagesPanel() {
   if (localStorage.getItem("dashboardPanel") !== "messages") return;
 
   const panel = document.getElementById("dashboardContent");
