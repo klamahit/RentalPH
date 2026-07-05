@@ -19,9 +19,29 @@ const RentalRequestSchema = new mongoose.Schema({
   contact: String,
   notes: String,
 
-  status: {
+    status: {
     type: String,
     default: "Pending"
+  },
+
+  canRate: {
+    type: Boolean,
+    default: false
+  },
+
+  rated: {
+    type: Boolean,
+    default: false
+  },
+
+  rating: {
+    type: Number,
+    default: 0
+  },
+
+  review: {
+    type: String,
+    default: ""
   }
 }, { timestamps: true });
 

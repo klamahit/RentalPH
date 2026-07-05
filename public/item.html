@@ -111,6 +111,21 @@ async function findRealItem() {
   }
 }
 
+async function getOwnerName(ownerEmail) {
+  try {
+    const res = await fetch(`/api/users/${encodeURIComponent(ownerEmail)}`);
+    const user = await res.json();
+
+    if (res.ok && user.name) {
+      return user.name;
+    }
+  } catch (err) {
+    console.error("Owner load error:", err);
+  }
+
+  return "Owner";
+}
+
 function toggleOwnerProfile() {
   const box = document.getElementById("ownerProfileBox");
   box.style.display = box.style.display === "block" ? "none" : "block";
@@ -164,6 +179,7 @@ const ownerEmail = (item.ownerEmail || "").trim().toLowerCase();
 const userEmail = currentUser ? currentUser.email.trim().toLowerCase() : "";
 const isOwner = currentUser && userEmail === ownerEmail;
 const requests = rentalRequests;
+const realOwnerName = await getOwnerName(item.ownerEmail);
 
 const alreadyRequested = currentUser && requests.some(req =>
   (String(req.itemId) === String(item._id) || String(req.itemId) === String(item.id)) &&
@@ -243,7 +259,7 @@ topBack.innerHTML = `
 </button>
 
 <div id="ownerProfileBox" class="hidden-info-box">
-  <p><b>Name:</b> ${escapeHTML(item.ownerName || item.owner || item.ownerEmail || "Owner")}</p>
+  <p><b>Name:</b> ${escapeHTML(realOwnerName)}</p>
   <p>✅ Verified Government ID</p>
   <p>📱 Verified Contact Number</p>
   <p>📞 ${escapeHTML(item.contact || "N/A")}</p>
