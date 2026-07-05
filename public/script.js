@@ -1009,17 +1009,19 @@ function displayMessagesPanel() {
   const currentUser = getCurrentUser();
   const conversations = getConversations();
 
-  conversations.sort((a, b) => new Date(b.date) - new Date(a.date));
-
   let html = `
-    <h2>💬 Messages</h2>
-    <p>Total conversations: ${conversations.length}</p>
+    <div class="messages-shell">
+      <div class="messages-sidebar">
+        <div class="messages-sidebar-header">
+          <h2>💬 Conversations</h2>
+          <input class="messages-search" placeholder="Search conversations..." oninput="filterConversationList(this.value)">
+        </div>
 
-    <div class="messenger-list">
+        <div class="messenger-list" id="conversationList">
   `;
 
-  if (conversations.length === 0) {
-    html += `<p>No messages yet.</p>`;
+  if (!conversations.length) {
+    html += `<p style="padding:16px;">No messages yet.</p>`;
   }
 
   conversations.forEach(convo => {
@@ -1030,29 +1032,51 @@ function displayMessagesPanel() {
     ).length;
 
     const avatarLetter = (convo.otherName || "?").charAt(0).toUpperCase();
+    const preview = (convo.lastMessage || "").length > 32
+      ? (convo.lastMessage || "").slice(0, 32) + "..."
+      : (convo.lastMessage || "");
 
     html += `
-      <div class="messenger-item" onclick="openConversation('${convo.otherEmail}')">
+      <div class="messenger-item ${unread ? "unread" : ""}" onclick="openConversation('${convo.otherEmail}')">
         <div class="messenger-avatar">${avatarLetter}</div>
 
         <div class="messenger-info">
-          <h4>
-            ${onlineUsers[convo.otherEmail] ? "🟢" : "⚪"}
-            ${escapeHTML(convo.otherName)}
-          </h4>
-          <p>${escapeHTML(convo.lastMessage)}</p>
-          <small>${escapeHTML(convo.date)}</small>
+          <h4>${escapeHTML(convo.otherName)}</h4>
+          <p>${escapeHTML(preview)}</p>
         </div>
 
-        ${unread > 0 ? `<div class="unread-badge">${unread}</div>` : ""}
+        <div class="messenger-meta">
+          <div>${formatMessageTime(convo.date)}</div>
+          ${unread ? `<span class="unread-badge">${unread}</span>` : ""}
+        </div>
       </div>
     `;
   });
 
-  html += `</div>`;
+  html += `
+        </div>
+      </div>
+
+      <div class="chat-page" style="display:grid;place-items:center;">
+        <div style="text-align:center;color:#64748b;">
+          <h2>Welcome to RentalPH Messages</h2>
+          <p>Select a conversation to start chatting.</p>
+        </div>
+      </div>
+    </div>
+  `;
+
   panel.innerHTML = html;
 }
 
+function filterConversationList(keyword) {
+  keyword = keyword.toLowerCase();
+
+  document.querySelectorAll(".messenger-item").forEach(item => {
+    const text = item.innerText.toLowerCase();
+    item.style.display = text.includes(keyword) ? "grid" : "none";
+  });
+}
 
 function openConversation(otherEmail, markRead = true) {
   activeChatEmail = otherEmail;
@@ -1095,9 +1119,6 @@ function openConversation(otherEmail, markRead = true) {
   }
 </span>
         </div>
-
-        <button onclick="toggleMessageSelectMode()">⋮</button>
-
       </div>
 
       <div id="chatMessagesBox" class="chat-body">
