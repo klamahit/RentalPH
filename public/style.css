@@ -3258,3 +3258,193 @@ cursor:pointer;
   font-size: 12px !important;
   font-weight: 800 !important;
 }
+/* ===== WOW Floating Dock Bottom Nav ===== */
+
+.dashboard-bottom-nav{
+  left: 50% !important;
+  right: auto !important;
+  bottom: 18px !important;
+  transform: translateX(-50%) !important;
+  width: min(880px, calc(100% - 34px)) !important;
+  height: 78px !important;
+  border-radius: 28px !important;
+  padding: 8px !important;
+  background: rgba(255,255,255,.88) !important;
+  backdrop-filter: blur(22px) !important;
+  border: 1px solid rgba(226,232,240,.9) !important;
+  box-shadow: 0 20px 50px rgba(15,23,42,.18) !important;
+}
+
+.dashboard-bottom-nav .nav-btn{
+  height: 62px !important;
+  border-radius: 22px !important;
+}
+
+.dashboard-bottom-nav .nav-btn.active{
+  background: linear-gradient(135deg,#0b5ed7,#2f80ed) !important;
+  color: white !important;
+  box-shadow: 0 14px 30px rgba(11,94,215,.32) !important;
+}
+
+.dashboard-bottom-nav .nav-btn.active::before{
+  display: none !important;
+}
+
+.dashboard-bottom-nav .nav-btn:hover{
+  background: #eef5ff !important;
+  color: #0b5ed7 !important;
+}
+
+.dashboard-bottom-nav .nav-btn.active:hover{
+  color: white !important;
+  transform: translateY(-5px) scale(1.03) !important;
+}
+/* ===== MOBILE RESPONSIVE FIXES ===== */
+
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+img {
+  max-width: 100%;
+}
+
+/* Dashboard */
+@media (max-width: 768px) {
+  .top-banner {
+    grid-template-columns: 1fr !important;
+    padding: 14px !important;
+  }
+
+  .top-banner h1 {
+    font-size: 22px !important;
+  }
+
+  .dashboard-content {
+    padding: 14px !important;
+    border-radius: 18px !important;
+    min-height: calc(100vh - 190px) !important;
+  }
+
+  .dashboard-summary {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .summary-card {
+    padding: 16px !important;
+    border-radius: 18px !important;
+  }
+
+  .summary-card h3 {
+    font-size: 26px !important;
+  }
+
+  .posted-rentals-grid {
+    grid-template-columns: 1fr !important;
+    justify-items: center !important;
+  }
+
+  .posted-rentals-grid .dashboard-card {
+    width: 100% !important;
+    max-width: 360px !important;
+  }
+}
+
+/* Messages mobile */
+@media (max-width: 768px) {
+  .messages-shell {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  .messages-sidebar {
+    min-height: auto !important;
+  }
+
+  .chat-page {
+    height: calc(100vh - 210px) !important;
+    border-radius: 20px !important;
+  }
+
+  .chat-top {
+    padding: 12px !important;
+  }
+
+  .chat-top h2 {
+    font-size: 18px !important;
+  }
+
+  .chat-body {
+    padding: 14px !important;
+  }
+
+  .chat-bubble {
+    max-width: 86% !important;
+    font-size: 14px !important;
+  }
+
+  .chat-reply-bar {
+    padding: 10px !important;
+  }
+
+  .chat-reply-bar input {
+    padding: 12px !important;
+  }
+
+  .chat-reply-bar button {
+    width: 46px !important;
+    height: 46px !important;
+  }
+}
+
+/* Bottom nav mobile */
+@media (max-width: 768px) {
+  .dashboard-bottom-nav {
+    width: calc(100% - 18px) !important;
+    bottom: 8px !important;
+    height: 74px !important;
+    border-radius: 24px !important;
+    padding: 6px !important;
+  }
+
+  .dashboard-bottom-nav .nav-btn {
+    height: 60px !important;
+    margin: 0 2px !important;
+    border-radius: 18px !important;
+  }
+
+  .dashboard-bottom-nav .nav-btn i,
+  .dashboard-bottom-nav .nav-btn .nav-icon {
+    font-size: 20px !important;
+  }
+
+  .dashboard-bottom-nav .nav-btn span,
+  .dashboard-bottom-nav .nav-btn .nav-text {
+    font-size: 10px !important;
+  }
+}
+
+/* Item details mobile */
+@media (max-width: 768px) {
+  .item-details-page {
+    grid-template-columns: 1fr !important;
+    padding: 16px !important;
+    margin: 20px auto !important;
+  }
+
+  .details-image,
+  .details-info {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .details-image {
+    height: auto !important;
+  }
+
+  .details-info {
+    padding: 22px !important;
+  }
+}
