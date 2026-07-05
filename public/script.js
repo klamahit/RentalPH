@@ -670,9 +670,11 @@ myItems.forEach(item => {
         </div>
 
         <div class="dashboard-actions">
-            <button onclick='openItem(${safeItem}, "posted")'>👁</button>
-            <button onclick="editRental('${item._id}')">✏️</button>
-            <button onclick="deleteRental('${item._id}')">🗑</button>
+          <button onclick='openItem(${safeItem}, "posted")'>👁</button>
+          <button onclick="editRental('${item._id}')">✏️</button>
+          <button onclick="deleteRental('${item._id}')">🗑</button>
+          ${item.status === "Rented" ? `<button onclick="returnRentalByItem('${item._id}')">↩️ Return</button>` : ""}
+
         </div>
 
     </div>
@@ -903,6 +905,21 @@ async function returnRental(requestId) {
     console.error("Return rental error:", err);
     alert("Return rental failed.");
   }
+}
+
+async function returnRentalByItem(itemId) {
+  await loadRentalRequestsFromDB();
+
+  const request = rentalRequests.find(req =>
+    String(req.itemId) === String(itemId) &&
+    req.status === "Approved"
+  );
+
+  if (!request) {
+    return alert("Approved rental request not found for this item.");
+  }
+
+  returnRental(request._id);
 }
 
 function openMyPostedItem(item) {
